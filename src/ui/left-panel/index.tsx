@@ -129,10 +129,10 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
         return (
             <Container id='scene-container' flex>
                 <ScenePanel sceneData={scene} setProperty={this.props.setProperty} />
-                <div id='scene-scrolly-bits'>
+                {/* <div id='scene-scrolly-bits'>
                     <HierarchyPanel sceneData={scene} setProperty={this.props.setProperty} />
                     <MorphTargetPanel progress={this.props.observerData.animation.progress} morphs={morphs} setProperty={this.props.setProperty} />
-                </div>
+                </div> */}
             </Container>
         );
     }
