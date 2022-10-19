@@ -9,7 +9,7 @@ import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 
 import { getAssetPath } from './helpers';
 import { DropHandler } from './drop-handler';
-import { MorphTarget, File, HierarchyNode } from './types';
+import { File, HierarchyNode } from './types';
 import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
@@ -39,13 +39,10 @@ class Viewer {
     entityAssets: Array<{entity: pc.Entity, asset: pc.Asset }>;
     assets: Array<pc.Asset>;
     meshInstances: Array<pc.MeshInstance>;
-    animTracks: Array<pc.AnimTrack>;
-    animationMap: Record<string, string>;
+   
     firstFrame: boolean;
     skyboxLoaded: boolean;
-    animSpeed: number;
-    animTransition: number;
-    animLoops: number;
+    
     showWireframe: boolean;
     showBounds: boolean;
     showSkeleton: boolean;
@@ -65,7 +62,6 @@ class Viewer {
     debugNormals: DebugLines;
     miniStats: any;
     observer: Observer;
-    suppressAnimationProgressUpdate: boolean;
 
     selectedNode: pc.GraphNode | null;
 
@@ -173,7 +169,7 @@ class Viewer {
         // create the orbit camera
         const camera = new pc.Entity("Camera");
         camera.addComponent("camera", {
-            fov: 75,
+            fov: 45,
             frustumCulling: true,
             clearColor: new pc.Color(0, 0, 0, 0)
         });
@@ -187,6 +183,7 @@ class Viewer {
 
         app.root.addChild(camera);
 
+        // 라이트 수정 가능
         // create the light
         const light = new pc.Entity();
         light.addComponent("light", {
@@ -228,14 +225,10 @@ class Viewer {
         this.entityAssets = [];
         this.assets = [];
         this.meshInstances = [];
-        this.animTracks = [];
-        this.animationMap = { };
+
         this.firstFrame = false;
         this.skyboxLoaded = false;
 
-        this.animSpeed = observer.get('animation.speed');
-        this.animTransition = observer.get('animation.transition');
-        this.animLoops = observer.get('animation.loops');
         this.showWireframe = observer.get('show.wireframe');
         this.showBounds = observer.get('show.bounds');
         this.showSkeleton = observer.get('show.skeleton');
@@ -450,20 +443,6 @@ class Viewer {
             'lighting.rotation': this.setLightingRotation.bind(this),
             'lighting.tonemapping': this.setTonemapping.bind(this),
 
-            'animation.playing': (playing: boolean) => {
-                if (playing) {
-                    this.play();
-                } else {
-                    this.stop();
-                }
-            },
-            'animation.selectedTrack': this.setSelectedTrack.bind(this),
-            'animation.speed': this.setSpeed.bind(this),
-            'animation.transition': this.setTransition.bind(this),
-            'animation.loops': this.setLoops.bind(this),
-            'animation.progress': this.setAnimationProgress.bind(this),
-
-            'scene.selectedNode.path': this.setSelectedNode.bind(this),
             'scene.variant.selected': this.setSelectedVariant.bind(this)
         };
 
@@ -631,27 +610,6 @@ class Viewer {
         this.skyboxLoaded = true;
     }
 
-    // load the built in helipad cubemap
-    private loadHeliSkybox() {
-        const app = this.app;
-
-        const cubemap = new pc.Asset('helipad', 'cubemap', {
-            url: getAssetPath("cubemaps/Helipad.dds")
-        }, {
-            magFilter: pc.FILTER_LINEAR,
-            minFilter: pc.FILTER_LINEAR_MIPMAP_LINEAR,
-            anisotropy: 1,
-            type: pc.TEXTURETYPE_RGBM
-        });
-        cubemap.on('load', () => {
-            app.scene.setSkybox(cubemap.resources);
-            this.renderNextFrame();
-        });
-        app.assets.add(cubemap);
-        app.assets.load(cubemap);
-        this.skyboxLoaded = true;
-    }
-
     private getCanvasSize() {
         return {
             width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth, // - document.getElementById("panel-right").offsetWidth,
@@ -725,13 +683,7 @@ class Viewer {
 
         this.meshInstances = [];
 
-        // reset animation state
-        this.animTracks = [];
-        this.animationMap = { };
-        this.observer.set('animation.list', '[]');
         this.observer.set('scene.variants.list', '[]');
-
-        this.observer.set('morphs', null);
 
         this.updateSceneInfo();
 
@@ -757,19 +709,11 @@ class Viewer {
             });
         });
 
-        const mapChildren = function (node: pc.GraphNode): Array<HierarchyNode> {
-            return node.children.map((child: pc.GraphNode) => ({
-                name: child.name,
-                path: child.path,
-                children: mapChildren(child)
-            }));
-        };
-
         const graph: Array<HierarchyNode> = this.entities.map((entity) => {
             return {
                 name: entity.name,
                 path: entity.path,
-                children: mapChildren(entity)
+                children: []
             };
         });
 
@@ -1009,99 +953,6 @@ class Viewer {
         return hasModelFilename;
     }
 
-    // set the currently selected track
-    setSelectedTrack(trackName: string) {
-        if (trackName !== 'ALL_TRACKS') {
-            const a = this.animationMap[trackName];
-            this.entities.forEach((e) => {
-                e.anim?.baseLayer?.transition(a);
-            });
-        }
-    }
-
-    // play an animation / play all the animations
-    play() {
-        this.entities.forEach((e) => {
-            if (e.anim) {
-                e.anim.playing = true;
-                e.anim.baseLayer?.play();
-            }
-        });
-    }
-
-    // stop playing animations
-    stop() {
-        this.entities.forEach((e) => {
-            if (e.anim) {
-                e.anim.playing = false;
-                e.anim.baseLayer?.pause();
-            }
-        });
-    }
-
-    // set the animation speed
-    setSpeed(speed: number) {
-        this.animSpeed = speed;
-        this.entities.forEach((e) => {
-            const anim = e.anim;
-            if (anim) {
-                anim.speed = speed;
-            }
-        });
-    }
-
-    setTransition(transition: number) {
-        this.animTransition = transition;
-
-        // it's not possible to change the transition time after creation,
-        // so rebuilt the animation graph with the new transition
-        if (this.animTracks.length > 0) {
-            this.rebuildAnimTracks();
-        }
-    }
-
-    setLoops(loops: number) {
-        this.animLoops = loops;
-
-        // it's not possible to change the transition time after creation,
-        // so rebuilt the animation graph with the new transition
-        if (this.animTracks.length > 0) {
-            this.rebuildAnimTracks();
-        }
-    }
-
-    setAnimationProgress(progress: number) {
-        if (this.suppressAnimationProgressUpdate) return;
-        this.entities.forEach((e) => {
-            const anim = e.anim;
-            const baseLayer = anim?.baseLayer;
-            if (baseLayer) {
-                this.play();
-                baseLayer.activeStateCurrentTime = baseLayer.activeStateDuration * progress;
-                anim.update(0);
-                anim.playing = false;
-            }
-        });
-        this.renderNextFrame();
-    }
-
-    setSelectedNode(path: string) {
-        const graphNode = this.app.root.findByPath(path);
-        if (graphNode) {
-            this.observer.set('scene.selectedNode', {
-                name: graphNode.name,
-                path: path,
-                position: graphNode.getLocalPosition().toString(),
-                rotation: graphNode.getLocalEulerAngles().toString(),
-                scale: graphNode.getLocalScale().toString()
-            });
-        }
-
-        this.selectedNode = graphNode;
-        this.dirtySkeleton = true;
-        this.renderNextFrame();
-    }
-
     setSelectedVariant(variant: string) {
         if (variant) {
             this.entityAssets.forEach((entityAsset) => {
@@ -1233,24 +1084,6 @@ class Viewer {
             this.renderNextFrame();
         }
 
-        // or an animation is loaded and we're animating
-        let isAnimationPlaying = false;
-        for (let i = 0; i < this.entities.length; ++i) {
-            const anim = this.entities[i].anim;
-            if (anim && anim.baseLayer && anim.baseLayer.playing) {
-                isAnimationPlaying = true;
-                break;
-            }
-        }
-
-        if (isAnimationPlaying) {
-            this.dirtyBounds = true;
-            this.dirtySkeleton = true;
-            this.dirtyNormals = true;
-            this.renderNextFrame();
-            this.observer.emit('animationUpdate');
-        }
-
         // or the ministats is enabled
         if (this.miniStats.enabled) {
             this.renderNextFrame();
@@ -1273,8 +1106,8 @@ class Viewer {
     // add a loaded asset to the scene
     // asset is a container asset with renders and/or animations
     private addToScene(err: string, asset: pc.Asset) {
-        this.observer.set('spinner', false);
-
+        //this.observer.set('spinner', false);
+        
         if (err) {
             this.observer.set('error', err);
             return;
@@ -1282,7 +1115,6 @@ class Viewer {
 
         const resource = asset.resource;
         const meshesLoaded = resource.renders && resource.renders.length > 0;
-        const animsLoaded = resource.animations && resource.animations.length > 0;
         const prevEntity : pc.Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
 
         let entity: pc.Entity;
@@ -1296,73 +1128,6 @@ class Viewer {
             this.entityAssets.push({ entity: entity, asset: asset });
             this.sceneRoot.addChild(entity);
         }
-
-        // create animation component
-        if (animsLoaded) {
-            // append anim tracks to global list
-            resource.animations.forEach((a : any) => {
-                this.animTracks.push(a.resource);
-            });
-        }
-
-        // rebuild the anim state graph
-        if (this.animTracks.length > 0) {
-            this.rebuildAnimTracks();
-        }
-
-        // make a list of all the morph instance target names
-        const morphs: Record<string, { name: string, targets: Record<string, MorphTarget> }> = {};
-
-        const morphInstances: Record<string, pc.MorphInstance> = {};
-        // get all morph targets
-        const meshInstances = this.collectMeshInstances(entity);
-        meshInstances.forEach((meshInstance, i) => {
-            if (meshInstance.morphInstance) {
-                const morphInstance = meshInstance.morphInstance;
-                morphInstances[i] = morphInstance;
-
-                // mesh name line
-                const meshName = (meshInstance && meshInstance.node && meshInstance.node.name) || "Mesh " + i;
-                morphs[i] = {
-                    name: meshName,
-                    targets: {}
-                };
-
-                // morph targets
-                morphInstance.morph.targets.forEach((target: pc.MorphTarget, targetIndex: number) => {
-                    morphs[i].targets[targetIndex] = {
-                        name: target.name,
-                        targetIndex: targetIndex
-                    };
-                    this.observer.on(`morphs.${i}.targets.${targetIndex}.weight:set`, (weight: number) => {
-                        morphInstances[i].setWeight(targetIndex, weight);
-                        this.dirtyNormals = true;
-                        this.renderNextFrame();
-                    });
-                });
-            }
-        });
-
-        this.observer.suspendEvents = true;
-        this.observer.set('morphs', morphs);
-        this.observer.suspendEvents = false;
-
-        // handle animation update
-        const observer = this.observer;
-        observer.on('animationUpdate', () => {
-            // set progress
-            for (let i = 0; i < this.entities.length; ++i) {
-                const entity = this.entities[i];
-                if (entity && entity.anim) {
-                    const baseLayer = entity.anim.baseLayer;
-                    const progress = baseLayer.activeStateCurrentTime / baseLayer.activeStateDuration;
-                    this.suppressAnimationProgressUpdate = true;
-                    observer.set('animation.progress', progress === 1 ? progress : progress % 1);
-                    this.suppressAnimationProgressUpdate = false;
-                    break;
-                }
-            }
-        });
 
         // store the loaded asset
         this.assets.push(asset);
@@ -1386,51 +1151,6 @@ class Viewer {
         // then focus the camera.
         this.firstFrame = true;
         this.renderNextFrame();
-    }
-
-    // rebuild the animation state graph
-    private rebuildAnimTracks() {
-        this.entities.forEach((entity) => {
-            // create the anim component if there isn't one already
-            if (!entity.anim) {
-                entity.addComponent('anim', {
-                    activate: true,
-                    speed: this.animSpeed
-                });
-                entity.anim.rootBone = entity;
-            } else {
-                // clean up any previous animations
-                entity.anim.removeStateGraph();
-            }
-
-            this.animTracks.forEach((t: any, i: number) => {
-                // add an event to each track which transitions to the next track when it ends
-                t.events = new pc.AnimEvents([
-                    {
-                        name: "transition",
-                        time: t.duration,
-                        nextTrack: "track_" + (i === this.animTracks.length - 1 ? 0 : i + 1)
-                    }
-                ]);
-                entity.anim.assignAnimation('track_' + i, t);
-                this.animationMap[t.name] = 'track_' + i;
-            });
-            // if the user has selected to play all tracks in succession, then transition to the next track after a set amount of loops
-            entity.anim.on('transition', (e) => {
-                const animationName: string = this.observer.get('animation.selectedTrack');
-                if (animationName === 'ALL_TRACKS' && entity.anim.baseLayer.activeStateProgress >= this.animLoops) {
-                    entity.anim.baseLayer.transition(e.nextTrack, this.animTransition);
-                }
-            });
-        });
-
-        // let the controls know about the new animations, set the selected track and immediately start playing the animation
-        const animationState = this.observer.get('animation');
-        const animationKeys = Object.keys(this.animationMap);
-        animationState.list = JSON.stringify(animationKeys);
-        animationState.selectedTrack = animationKeys[0];
-        animationState.playing = true;
-        this.observer.set('animation', animationState);
     }
 
     private calcSceneBounds() {
@@ -1579,6 +1299,7 @@ class Viewer {
         } else if (this.loadTimestamp !== null) {
             this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp} ms`);
             this.loadTimestamp = null;
+            this.observer.set('spinner', false);
         }
 
         if (this.multiframeBusy) {
