@@ -54,7 +54,7 @@ class OrbitCamera {
     constructor(cameraNode: pc.Entity, transitionTime: number) {
         this.cameraNode = cameraNode;
         this.focalPoint = new SmoothedValue(new pc.Vec3(0, 0, 0), transitionTime);
-        this.azimElevDistance = new SmoothedValue(new pc.Vec3(0, 0, 1), transitionTime);
+        this.azimElevDistance = new SmoothedValue(new pc.Vec3(0, 0, 10000), transitionTime);
     }
 
     vecToAzimElevDistance(vec: pc.Vec3, azimElevDistance: pc.Vec3) {
