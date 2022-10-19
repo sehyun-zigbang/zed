@@ -1,0 +1,82 @@
+From 7a495f6f16acbc604f96baab7a75757b1283cff8 Mon Sep 17 00:00:00 2001
+From: "Jeong, Sejun" <sejun@zigbang.com>
+Date: Wed, 19 Oct 2022 13:25:27 +0900
+Subject: [PATCH] fix: publicPath
+
+---
+ rollup.config.js   |  3 ++-
+ src/helpers.ts     |  5 +++--
+ src/index.mustache | 10 +++++-----
+ 3 files changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/rollup.config.js b/rollup.config.js
+index 0421c8e..d89e1a8 100644
+--- a/rollup.config.js
++++ b/rollup.config.js
+@@ -50,12 +50,13 @@ if (paths.ENGINE_PATH) {
+ // compile mustache template
+ const compileMustache = (content, srcFilename) => {
+     return Handlebars.compile(content.toString('utf8'))({
++        publicPath: process.env.PUBLIC_PATH,
+         hasPublicPath: !!process.env.PUBLIC_PATH,
+         hasAnalyticsID: !!process.env.ANALYTICS_ID,
+         hasOneTrustDeveloperID: !!process.env.ONETRUST_DEVELOPER_ID,
+         analyticsID: process.env.ANALYTICS_ID,
+         oneTrustDomainKey: process.env.ONETRUST_DOMAIN_KEY,
+-        oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID
++        oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID,
+     });
+ };
+ 
+diff --git a/src/helpers.ts b/src/helpers.ts
+index 3cafe30..c22e9aa 100644
+--- a/src/helpers.ts
++++ b/src/helpers.ts
+@@ -1,11 +1,12 @@
+ function getAssetPath(assetPath: string): string {
+     // @ts-ignore: path variable injected at build time
+-    return (__PUBLIC_PATH__ ? __PUBLIC_PATH__ : '/static/') + assetPath;
++    return (__PUBLIC_PATH__ ? __PUBLIC_PATH__ + '/static/' : '/static/') +
++        assetPath;
+ }
+ 
+ function getRootPath(): string {
+     // @ts-ignore: path variable injected at build time
+-    return (__PUBLIC_PATH__ ? './model-viewer' : '.');
++    return (__PUBLIC_PATH__ ? __PUBLIC_PATH__ : '.');
+ }
+ 
+ const addEventListenerOnClickOnly = (element: any, callback: any, delta = 2) => {
+diff --git a/src/index.mustache b/src/index.mustache
+index 16261ea..a985242 100644
+--- a/src/index.mustache
++++ b/src/index.mustache
+@@ -7,12 +7,12 @@
+     <meta charset="utf-8">
+     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+     {{#hasPublicPath}}
+-    <link rel="icon" type="image/png" href="/model-viewer/static/playcanvas-logo.png" />
+-    <link rel="manifest" href="/model-viewer/static/manifest.json">
+-    <link rel="stylesheet" href="/model-viewer/style.css" />
++    <link rel="icon" type="image/png" href="{{{ publicPath }}}/static/playcanvas-logo.png" />
++    <link rel="manifest" href="{{{ publicPath }}}/static/manifest.json">
++    <link rel="stylesheet" href="{{{ publicPath }}}/style.css" />
+     <script type="text/javascript">
+         if (/playcanvas\.com/.test(window.top.location.host)) {
+-            document.write('<link rel="stylesheet" href="/model-viewer/fonts.css" />');
++            document.write('<link rel="stylesheet" href="{{{ publicPath }}}/fonts.css" />');
+         }
+     </script>
+     {{#hasAnalyticsID}}
+@@ -65,7 +65,7 @@
+     </a>
+     <div id='app'></div>
+     {{#hasPublicPath}}
+-    <script src="/model-viewer/index.js"></script>
++    <script src="{{{ publicPath }}}/index.js"></script>
+     <script src="https://cdn.cookielaw.org/scripttemplates/otSDKStub.js"  type="text/javascript" charset="UTF-8" data-domain-script="{{{ oneTrustDomainKey }}}" ></script>
+     <script type="text/javascript">
+         if (!window._optanonCallbacks) {
+-- 
+2.37.0 (Apple Git-136)
+
