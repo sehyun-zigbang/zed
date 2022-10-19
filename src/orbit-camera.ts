@@ -27,6 +27,7 @@ class SmoothedValue {
     }
 
     update(deltaTime: number) {
+        this.target.y = Math.min(-2, this.target.y);
         if (this.timer < this.transitionTime) {
             this.timer = Math.min(this.timer + deltaTime, this.transitionTime);
             const n = this.timer / this.transitionTime;
