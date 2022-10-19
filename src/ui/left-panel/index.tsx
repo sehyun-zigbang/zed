@@ -1,10 +1,8 @@
 import React from 'react';
-import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react/unstyled';
-import { HierarchyNode, SetProperty, ObserverData } from '../../types';
+import { Panel, Container } from '@playcanvas/pcui/react/unstyled';
+import { SetProperty, ObserverData } from '../../types';
 
-import { Vector, Detail, Select } from '../components';
-import { addEventListenerOnClickOnly } from '../../helpers';
-import MorphTargetPanel from './morph-target-panel';
+import { Vector, Detail, Select, Slider, Toggle } from '../components';
 
 const toggleCollapsed = () => {
     const leftPanel = document.getElementById('panel-left');
@@ -56,38 +54,65 @@ class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], se
         );
     }
 }
-
-class HierarchyPanel extends React.Component <{ sceneData: ObserverData['scene'], setProperty: SetProperty }> {
-    shouldComponentUpdate(nextProps: Readonly<{ sceneData: ObserverData['scene']; setProperty: SetProperty; }>): boolean {
-        return (
-            nextProps.sceneData.nodes !== this.props.sceneData.nodes
-        );
+class CameraPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.observerData) !== JSON.stringify(this.props.observerData);
     }
 
     render() {
-        const scene = this.props.sceneData;
-        const modelHierarchy: Array<HierarchyNode> = JSON.parse(scene.nodes);
-        const mapNodes = (nodes: Array<HierarchyNode>) => {
-            return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path}
-                onSelect={(TreeViewItem: any) => {
-                    this.props.setProperty('scene.selectedNode.path', node.path);
-                    const removeEventListener = addEventListenerOnClickOnly(document.body, () => {
-                        TreeViewItem.selected = false;
-                        removeEventListener();
-                    }, 4);
-                }}
-                onDeselect={() => this.props.setProperty('scene.selectedNode.path', '')}
-            >
-                { mapNodes(node.children) }
-            </TreeViewItem>);
-        };
+        const props = this.props;
         return (
-            <Panel headerText='HIERARCHY' class='scene-hierarchy-panel' enabled={modelHierarchy.length > 0} collapsible={false}>
-                { modelHierarchy.length > 0 &&
-                    <TreeView allowReordering={false} allowDrag={false}>
-                        { mapNodes(modelHierarchy) }
-                    </TreeView>
-                }
+            <Panel headerText='CAMERA' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+                <Slider label='Fov' precision={0} min={35} max={150} value={props.observerData.show.fov} setProperty={(value: number) => props.setProperty('show.fov', value)} />
+                <Select label='Tonemap' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} value={props.observerData.lighting.tonemapping} setProperty={(value: number) => props.setProperty('lighting.tonemapping', value)} />
+                <Select label='Pixel Scale' value={props.observerData.render.pixelScale} type='number' options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))} setProperty={(value: number) => props.setProperty('render.pixelScale', value)} />
+                <Toggle label='Multisample' value={props.observerData.render.multisample} enabled={props.observerData.render.multisampleSupported}
+                    setProperty={(value: boolean) => props.setProperty('render.multisample', value)}
+                />
+                <Toggle label='High Quality' value={props.observerData.render.hq} enabled={!props.observerData.animation.playing && !props.observerData.show.stats}
+                    setProperty={(value: boolean) => props.setProperty('render.hq', value)}
+                />
+                <Toggle label='Stats' value={props.observerData.show.stats}
+                    setProperty={(value: boolean) => props.setProperty('show.stats', value)}
+                />
+            </Panel>
+        );
+    }
+}
+class LightingPanel extends React.Component <{ lightingData: ObserverData['lighting'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ lightingData: ObserverData['lighting']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.lightingData) !== JSON.stringify(this.props.lightingData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <Panel headerText='LIGHTING' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+                    <Select label='Environment' type='string' options={JSON.parse(props.lightingData.env.options)} value={props.lightingData.env.value} setProperty={(value: string) => props.setProperty('lighting.env.value', value)} />
+                    <Select label='Skybox Level' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} value={props.lightingData.env.skyboxMip} setProperty={(value: number) => props.setProperty('lighting.env.skyboxMip', value)} />
+                    <Slider label='Exposure' precision={2} min={-6} max={6} value={props.lightingData.env.exposure} setProperty={(value: number) => props.setProperty('lighting.env.exposure', value)} />
+                    <Slider label='Rotation' precision={0} min={-180} max={180} value={props.lightingData.rotation} setProperty={(value: number) => props.setProperty('lighting.rotation', value)} />
+                    <Slider label='Direct' precision={2} min={0} max={6} value={props.lightingData.direct} setProperty={(value: number) => props.setProperty('lighting.direct', value)} />
+                    <Toggle label='Shadow' value={props.lightingData.shadow} setProperty={(value: boolean) => props.setProperty('lighting.shadow', value)} />
+            </Panel>
+        );
+    }
+}
+class ShowPanel extends React.Component <{ showData: ObserverData['show'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ showData: ObserverData['show']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.showData) !== JSON.stringify(this.props.showData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <Panel headerText='DEBUG' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+                    <Toggle label='Grid' value={props.showData.grid} setProperty={(value: boolean) => props.setProperty('show.grid', value)}/>
+                    <Toggle label='Wireframe' value={props.showData.wireframe} setProperty={(value: boolean) => props.setProperty('show.wireframe', value)} />
+                    <Toggle label='Axes' value={props.showData.axes} setProperty={(value: boolean) => props.setProperty('show.axes', value)} />
+                    <Toggle label='Skeleton' value={props.showData.skeleton} setProperty={(value: boolean) => props.setProperty('show.skeleton', value)} />
+                    <Toggle label='Bounds' value={props.showData.bounds} setProperty={(value: boolean) => props.setProperty('show.bounds', value)} />
+                    <Slider label='Normals' precision={2} min={0} max={1} setProperty={(value: number) => props.setProperty('show.normals', value)} value={props.showData.normals} />
             </Panel>
         );
     }
@@ -106,9 +131,11 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
 
     componentDidMount(): void {
         // set up the control panel toggle button
+        // @ts-ignore
         document.getElementById('panel-toggle').addEventListener('click', function () {
             toggleCollapsed();
         });
+        // @ts-ignore
         document.getElementById('title').addEventListener('click', function () {
             toggleCollapsed();
         });
@@ -125,14 +152,14 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
 
     render() {
         const scene = this.props.observerData.scene;
-        const morphs = this.props.observerData.morphs;
         return (
             <Container id='scene-container' flex>
-                <ScenePanel sceneData={scene} setProperty={this.props.setProperty} />
-                {/* <div id='scene-scrolly-bits'>
-                    <HierarchyPanel sceneData={scene} setProperty={this.props.setProperty} />
-                    <MorphTargetPanel progress={this.props.observerData.animation.progress} morphs={morphs} setProperty={this.props.setProperty} />
-                </div> */}
+                <div id='scene-scrolly-bits'>
+                    <ScenePanel sceneData={scene} setProperty={this.props.setProperty} />
+                    <CameraPanel setProperty={this.props.setProperty} observerData={this.props.observerData} />
+                    <LightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
+                    <ShowPanel setProperty={this.props.setProperty} showData={this.props.observerData.show} uiData={this.props.observerData.ui} />    
+                </div>
             </Container>
         );
     }

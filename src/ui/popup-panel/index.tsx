@@ -1,18 +1,82 @@
 import React from 'react';
 import { Observer } from '@playcanvas/observer';
-import { Button } from '@playcanvas/pcui/react/unstyled';
+import { Container, Button, Label, TextInput } from '@playcanvas/pcui/react/unstyled';
 import { SetProperty, ObserverData } from '../../types';
-import AnimationControls from './animation-controls';
-import { CameraPanel, LightingPanel, ShowPanel, ViewPanel } from './panels';
 // @ts-ignore no type defs included
 import * as pcx from 'playcanvas/build/playcanvas-extras.js';
 import { addEventListenerOnClickOnly } from '../../helpers';
+// @ts-ignore no type defs included
+import QRious from 'qrious';
+
+class ViewPanel extends React.Component <{ uiData: ObserverData['ui'], glbUrl: string, setProperty: SetProperty }> {
+    isMobile: boolean;
+
+    get shareUrl() {
+        return `${location.origin}${location.pathname}/?load=${this.props.glbUrl}`;
+    }
+
+    constructor(props: any) {
+        super(props);
+        this.isMobile = (/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    }
+
+    shouldComponentUpdate(nextProps: Readonly<{ uiData: ObserverData['ui']; glbUrl: string, setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData) ||
+        nextProps.glbUrl !== this.props.glbUrl;
+    }
+
+    updateQRCode() {
+        const canvas = document.getElementById('share-qr');
+        const qr = new QRious({
+            element: canvas,
+            value: this.shareUrl
+        });
+    }
+
+    componentDidMount() {
+        if (this.props.glbUrl) {
+            this.updateQRCode();
+        }
+    }
+
+    componentDidUpdate(): void {
+        if (this.props.glbUrl) {
+            this.updateQRCode();
+        }
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <div className='popup-panel-parent'>
+                <Container id='view-panel' class='popup-panel' flex hidden={props.uiData.active !== 'view'}>
+                    { this.props.glbUrl && !this.isMobile ?
+                        <>
+                            <Label text='View and share on mobile with QR code' />
+                            <div id='qr-wrapper'>
+                                <canvas id='share-qr' />
+                            </div>
+                            <Label text='View and share on mobile with URL' />
+                            <div id='share-url-wrapper'>
+                                <TextInput class='secondary' value={this.shareUrl} enabled={false} />
+                                <Button id='copy-button' icon='E126' onClick={() => {
+                                    if (navigator.clipboard && window.isSecureContext) {
+                                        navigator.clipboard.writeText(this.shareUrl);
+                                    }
+                                }}/>
+                            </div>
+                        </> : null }
+                    <Button class='secondary' text='TAKE A SNAPSHOT AS PNG' onClick={() => {
+                        if (window.viewer) window.viewer.downloadPngScreenshot();
+                    }}/>
+                </Container>
+            </div>
+        );
+    }
+}
 
 const PopupPanelControls = (props: { observerData: ObserverData, setProperty: SetProperty }) => {
     return (<>
-        <CameraPanel setProperty={props.setProperty} observerData={props.observerData} />
-        <ShowPanel setProperty={props.setProperty} showData={props.observerData.show} uiData={props.observerData.ui} />
-        <LightingPanel setProperty={props.setProperty} lightingData={props.observerData.lighting} uiData={props.observerData.ui} />
         <ViewPanel setProperty={props.setProperty} glbUrl={props.observerData.glbUrl} uiData={props.observerData.ui} />
     </>);
 };
@@ -46,11 +110,7 @@ class PopupButtonControls extends React.Component <{ observerData: ObserverData,
         };
 
         return (
-            <div id='popup-buttons-parent'>
-                <AnimationControls animationData={this.props.observerData.animation} setProperty={this.props.setProperty} />
-                <Button class={buildClass('camera')} icon='E212' width={40} height={40} onClick={() => handleClick('camera')} />
-                <Button class={buildClass('show')} icon='E188' width={40} height={40} onClick={() => handleClick('show')} />
-                <Button class={buildClass('lighting')} icon='E192' width={40} height={40} onClick={() => handleClick('lighting')} />
+            <div id='popup-button'>
                 <Button class={buildClass('view')} icon='E301' width={40} height={40} onClick={() => handleClick('view')} />
             </div>
         );
@@ -82,9 +142,8 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
     render() {
         return (<div id='popup' className={this.props.observerData.scene.nodes === '[]' ? 'empty' : null}>
             <PopupPanelControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
-            <PopupButtonControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
             <div id='floating-buttons-parent'>
-                <Button class='popup-button' icon='E189' hidden={!this.hasArSupport || this.props.observerData.scene.nodes === '[]'} width={40} height={40} onClick={() => {
+                {/* <Button class='popup-button' icon='E189' hidden={!this.hasArSupport || this.props.observerData.scene.nodes === '[]'} width={40} height={40} onClick={() => {
                     if (this.usdzExporter) {
                         const sceneRoot = (window as any).pc.app.root.findByName('sceneRoot');
                         // convert the loaded entity into asdz file
@@ -96,10 +155,9 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
                     } else {
                         if (window.viewer) window.viewer.startXr();
                     }
-                } } />
-                <Button class='popup-button' id='fullscreen-button' icon='E127' width={40} height={40} onClick={() => {
-                    toggleCollapsed();
-                } } />
+                } } /> */}
+                
+                <PopupButtonControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
             </div>
         </div>);
     }

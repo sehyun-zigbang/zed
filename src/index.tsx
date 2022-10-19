@@ -192,11 +192,11 @@ new pc.Http().get(url, {
         skyboxData.options = JSON.stringify(skyboxOptions);
         skyboxData.default = getAssetPath(result.defaultSkybox);
         observer.set('lighting.env', skyboxData);
-        loadOptions('uistate');
+        // loadOptions('uistate');
 
-        observer.on('*:set', () => {
-            saveOptions('uistate');
-        });
+        // observer.on('*:set', () => {
+        //     saveOptions('uistate');
+        // });
 
         const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
         window.viewer = new Viewer(canvas, observer);
