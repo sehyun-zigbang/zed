@@ -50,12 +50,13 @@ if (paths.ENGINE_PATH) {
 // compile mustache template
 const compileMustache = (content, srcFilename) => {
     return Handlebars.compile(content.toString('utf8'))({
+        publicPath: process.env.PUBLIC_PATH,
         hasPublicPath: !!process.env.PUBLIC_PATH,
         hasAnalyticsID: !!process.env.ANALYTICS_ID,
         hasOneTrustDeveloperID: !!process.env.ONETRUST_DEVELOPER_ID,
         analyticsID: process.env.ANALYTICS_ID,
         oneTrustDomainKey: process.env.ONETRUST_DOMAIN_KEY,
-        oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID
+        oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID,
     });
 };
 

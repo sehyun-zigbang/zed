@@ -7,12 +7,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     {{#hasPublicPath}}
-    <link rel="icon" type="image/png" href="/model-viewer/static/playcanvas-logo.png" />
-    <link rel="manifest" href="/model-viewer/static/manifest.json">
-    <link rel="stylesheet" href="/model-viewer/style.css" />
+    <link rel="icon" type="image/png" href="{{{ publicPath }}}/static/playcanvas-logo.png" />
+    <link rel="manifest" href="{{{ publicPath }}}/static/manifest.json">
+    <link rel="stylesheet" href="{{{ publicPath }}}/style.css" />
     <script type="text/javascript">
         if (/playcanvas\.com/.test(window.top.location.host)) {
-            document.write('<link rel="stylesheet" href="/model-viewer/fonts.css" />');
+            document.write('<link rel="stylesheet" href="{{{ publicPath }}}/fonts.css" />');
         }
     </script>
     {{#hasAnalyticsID}}
@@ -65,7 +65,7 @@
     </a>
     <div id='app'></div>
     {{#hasPublicPath}}
-    <script src="/model-viewer/index.js"></script>
+    <script src="{{{ publicPath }}}/index.js"></script>
     <script src="https://cdn.cookielaw.org/scripttemplates/otSDKStub.js"  type="text/javascript" charset="UTF-8" data-domain-script="{{{ oneTrustDomainKey }}}" ></script>
     <script type="text/javascript">
         if (!window._optanonCallbacks) {

@@ -1,11 +1,12 @@
 function getAssetPath(assetPath: string): string {
     // @ts-ignore: path variable injected at build time
-    return (__PUBLIC_PATH__ ? __PUBLIC_PATH__ : '/static/') + assetPath;
+    return (__PUBLIC_PATH__ ? __PUBLIC_PATH__ + '/static/' : '/static/') +
+        assetPath;
 }
 
 function getRootPath(): string {
     // @ts-ignore: path variable injected at build time
-    return (__PUBLIC_PATH__ ? './model-viewer' : '.');
+    return (__PUBLIC_PATH__ ? __PUBLIC_PATH__ : '.');
 }
 
 const addEventListenerOnClickOnly = (element: any, callback: any, delta = 2) => {
