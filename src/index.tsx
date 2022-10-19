@@ -39,21 +39,21 @@ const observerData: ObserverData = {
         axes: false,
         grid: true,
         normals: 0,
-        fov: 50
+        fov: 45
     },
     lighting: {
-        direct: 0,
-        shadow: false,
+        direct: 0.6,
+        shadow: true,
         env: {
             value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
             options: null,
             default: null,
             skyboxMip: '3',
-            exposure: 0,
+            exposure: 0.2,
             backgroundColor: { r: 0.4, g: 0.45, b: 0.5 }
         },
-        rotation: 0,
-        tonemapping: 'Linear'
+        rotation: -10,
+        tonemapping: 'ACES'
     },
     animation: {
         playing: false,
