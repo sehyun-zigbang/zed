@@ -8552,122 +8552,122 @@
         {
             "mimeType" : "image/jpeg",
             "name" : "fabric_N",
-            "uri" : "../../textures/fabric_N.jpg"
+            "uri" : "../textures/fabric_N.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Image",
-            "uri" : "../../textures/Image.jpg"
+            "uri" : "../textures/Image.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "fabric_D",
-            "uri" : "../../textures/fabric_D.jpg"
+            "uri" : "../textures/fabric_D.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "wood_table_chair_N",
-            "uri" : "../../textures/wood_table_chair_N.jpg"
+            "uri" : "../textures/wood_table_chair_N.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "wood_table_chair_D",
-            "uri" : "../../textures/wood_table_chair_D.jpg"
+            "uri" : "../textures/wood_table_chair_D.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "chest_N",
-            "uri" : "../../textures/chest_N.jpg"
+            "uri" : "../textures/chest_N.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "mable_texture_01_D",
-            "uri" : "../../textures/mable_texture_01_D.jpg"
+            "uri" : "../textures/mable_texture_01_D.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "mable_texture_02_D",
-            "uri" : "../../textures/mable_texture_02_D.jpg"
+            "uri" : "../textures/mable_texture_02_D.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Image",
-            "uri" : "../../textures/Image-1.jpg"
+            "uri" : "../textures/Image-1.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "door_close_N",
-            "uri" : "../../textures/door_close_N.jpg"
+            "uri" : "../textures/door_close_N.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "door_close_D",
-            "uri" : "../../textures/door_close_D.jpg"
+            "uri" : "../textures/door_close_D.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Image",
-            "uri" : "../../textures/Image-2.jpg"
+            "uri" : "../textures/Image-2.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "wall_paper_N",
-            "uri" : "../../textures/wall_paper_N.jpg"
+            "uri" : "../textures/wall_paper_N.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "wall_paper_D",
-            "uri" : "../../textures/wall_paper_D.jpg"
+            "uri" : "../textures/wall_paper_D.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Image",
-            "uri" : "../../textures/Image-3.jpg"
+            "uri" : "../textures/Image-3.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "floor_balcony_N",
-            "uri" : "../../textures/floor_balcony_N.jpg"
+            "uri" : "../textures/floor_balcony_N.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "floor_balcony_D",
-            "uri" : "../../textures/floor_balcony_D.jpg"
+            "uri" : "../textures/floor_balcony_D.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "floor_balcony_D",
-            "uri" : "../../textures/floor_balcony_D-1.jpg"
+            "uri" : "../textures/floor_balcony_D-1.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Image",
-            "uri" : "../../textures/Image-4.jpg"
+            "uri" : "../textures/Image-4.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "floor_bath_N",
-            "uri" : "../../textures/floor_bath_N.jpg"
+            "uri" : "../textures/floor_bath_N.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "floor_bath_D",
-            "uri" : "../../textures/floor_bath_D.jpg"
+            "uri" : "../textures/floor_bath_D.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Image",
-            "uri" : "../../textures/Image-5.jpg"
+            "uri" : "../textures/Image-5.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "floor_room_N",
-            "uri" : "../../textures/floor_room_N.jpg"
+            "uri" : "../textures/floor_room_N.jpg"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "floor_room_D",
-            "uri" : "../../textures/floor_room_D.jpg"
+            "uri" : "../textures/floor_room_D.jpg"
         }
     ],
     "accessors" : [
