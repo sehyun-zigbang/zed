@@ -49,20 +49,59 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
         });
         viewer.loadFiles(loadList);
         props.setProperty('glbUrl', url);
+    };
 
+    const onLoadModel = () => {
+        // @ts-ignore
+        var danjiId = document.getElementById('input-danjiId').ui.value;
+        // @ts-ignore
+        var roomTypeId = document.getElementById('input-roomtypeId').ui.value;
+        // @ts-ignore
+        var level = document.getElementById('input-level').ui.value;
+        
+        var asset_path = "https://raw.githubusercontent.com/sehyun-zigbang/zigbang-zed-viewer/feature/playcanvas-based/assets";
+        
+        var model_path = `${asset_path}/glTF/${danjiId}/${roomTypeId}`;
+
+        var name_glTF = `${danjiId}_${roomTypeId}_${level}.gltf`;
+        var name_bin = `${danjiId}_${roomTypeId}_${level}.bin`;
+        var url_glTF = `${model_path}/${name_glTF}`;
+        var url_bin = `${model_path}/${name_bin}`;
+        // var url_textures = `${asset_path}/textures`;
+
+        // console.log(`danjiId : ${danjiId} / roomTypeId : ${roomTypeId} / level : ${level}`);
+        // console.log(url_glTF);
+        // console.log(url_bin);
+        // console.log(url_textures);
+        // console.log(name_glTF);
+        // console.log(name_bin);
+
+        const viewer = (window as any).viewer;
+        const loadList: Array<File> = [];
+
+        loadList.push({
+            url : url_glTF,
+            filename : name_glTF
+        });
+        loadList.push({
+            url : url_bin,
+            filename : name_bin
+        });
+        
+        viewer.loadFiles(loadList);
     };
 
     return (
         <div id='load-controls'>
             <Container class="load-button-panel" enabled flex>
-                <div className='header'>
+                {/* <div className='header'>
                     <img src={getAssetPath('zigbang-logo.jpg')}/>
                     <div>
                         <Label text='ZIGBANG MODEL VIEWER' />
                     </div>
-                    {/* <Button onClick={() => {
+                    <Button onClick={() => {
                         window.open('https://github.com/playcanvas/model-viewer', '_blank').focus();
-                    }} icon='E259'/> */}
+                    }} icon='E259'/>
                 </div>
                 <input type='file' id='file' multiple onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
                 <div id="drag-drop" onClick={onLoadButtonClick}>
@@ -82,7 +121,18 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
                     setUrlInputValid(isValid);
                     return isValid;
                 }}/>
-                <Button class='secondary' id='glb-url-button' text='LOAD MODEL FROM URL' onClick={onUrlSelected} enabled={urlInputValid}></Button>
+                <Button class='secondary' id='glb-url-button' text='LOAD MODEL FROM URL' onClick={onUrlSelected} enabled={urlInputValid}></Button> */}
+                
+                <div className='header'>
+                    <img src={getAssetPath('zigbang-logo.jpg')}/>
+                    <div>
+                        <Label text='ZIGBANG MODEL VIEWER' />
+                    </div>
+                </div>
+                <TextInput class='secondary' id='input-danjiId' placeholder='input danjiID' value = '19931'/>
+                <TextInput class='secondary' id='input-roomtypeId' placeholder='input roomtypeID' value = '17493'/>
+                <TextInput class='secondary' id='input-level' placeholder='input level' value = '0'/>
+                <Button class='secondary' id='glb-url-button' text='LOAD MODEL' onClick={onLoadModel}></Button>
             </Container>
         </div>
     );
