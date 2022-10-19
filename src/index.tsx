@@ -48,7 +48,7 @@ const observerData: ObserverData = {
             value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
             options: null,
             default: null,
-            skyboxMip: '3',
+            skyboxMip: '4',
             exposure: 0.2,
             backgroundColor: { r: 0.4, g: 0.45, b: 0.5 }
         },
