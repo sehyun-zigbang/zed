@@ -52,12 +52,12 @@ class App extends React.Component<{ observer: Observer }> {
             <Container id="panel-left" class={this.state.scene.nodes === '[]' ? 'empty' : null} flex resizable='right' resizeMin={220} resizeMax={800} onResize={() => this.props.observer.emit('canvasResized')}>
                 <div className="header" style={{ display: 'none' }}>
                     <div id="title">
-                        <img src={getAssetPath('playcanvas-logo.png')}/>
-                        <div>PLAYCANVAS MODEL VIEWER</div>
+                        <img src={getAssetPath('zigbang-logo.jpg')}/>
+                        <div>ZIGBANG MODEL VIEWER</div>
                     </div>
                 </div>
                 <div id="panel-toggle">
-                    <img src={getAssetPath('playcanvas-logo.png')}/>
+                    <img src={getAssetPath('zigbang-logo.jpg')}/>
                 </div>
                 <LeftPanel observerData={this.state} setProperty={this._setStateProperty} />
             </Container>

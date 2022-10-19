@@ -56,13 +56,13 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
         <div id='load-controls'>
             <Container class="load-button-panel" enabled flex>
                 <div className='header'>
-                    <img src={getAssetPath('playcanvas-logo.png')}/>
+                    <img src={getAssetPath('zigbang-logo.jpg')}/>
                     <div>
-                        <Label text='PLAYCANVAS MODEL VIEWER' />
+                        <Label text='ZIGBANG MODEL VIEWER' />
                     </div>
-                    <Button onClick={() => {
+                    {/* <Button onClick={() => {
                         window.open('https://github.com/playcanvas/model-viewer', '_blank').focus();
-                    }} icon='E259'/>
+                    }} icon='E259'/> */}
                 </div>
                 <input type='file' id='file' multiple onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
                 <div id="drag-drop" onClick={onLoadButtonClick}>
