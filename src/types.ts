@@ -41,7 +41,6 @@ export interface ObserverData {
     },
     lighting: {
         direct: number,
-        shadow: boolean,
         env: {
             value: string,
             options: null,
@@ -52,9 +51,30 @@ export interface ObserverData {
                 r: number,
                 g: number,
                 b: number
-            }
+            },
+            rotation: number
         },
-        rotation: number,
+        mainLight: {
+            intencity: number,
+            color_r : number,
+            color_g : number,
+            color_b : number,
+            rotation_x : number,
+            rotation_y : number,
+            rotation_z : number,
+            shadow: boolean,
+            shadowResolution : number,
+            shadowIntencity : number
+        },
+        subLight: {
+            intencity: number,
+            color_r : number,
+            color_g : number,
+            color_b : number,
+            rotation_x : number,
+            rotation_y : number,
+            rotation_z : number
+        },
         tonemapping: string
     },
     animation: {

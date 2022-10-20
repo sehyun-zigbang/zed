@@ -79,6 +79,23 @@ class CameraPanel extends React.Component <{ observerData: ObserverData, setProp
         );
     }
 }
+class EnvironmentPanel extends React.Component <{ lightingData: ObserverData['lighting'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ lightingData: ObserverData['lighting']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.lightingData) !== JSON.stringify(this.props.lightingData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <Panel headerText='ENVIRONMENT' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+                    <Select label='Environment' type='string' options={JSON.parse(props.lightingData.env.options)} value={props.lightingData.env.value} setProperty={(value: string) => props.setProperty('lighting.env.value', value)} />
+                    <Select label='Skybox Level' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} value={props.lightingData.env.skyboxMip} setProperty={(value: number) => props.setProperty('lighting.env.skyboxMip', value)} />
+                    <Slider label='Exposure' precision={2} min={-6} max={6} value={props.lightingData.env.exposure} setProperty={(value: number) => props.setProperty('lighting.env.exposure', value)} />
+                    <Slider label='Rotation' precision={0} min={-180} max={180} value={props.lightingData.env.rotation} setProperty={(value: number) => props.setProperty('lighting.env.rotation', value)} />
+            </Panel>
+        );
+    }
+}
 class LightingPanel extends React.Component <{ lightingData: ObserverData['lighting'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ lightingData: ObserverData['lighting']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.lightingData) !== JSON.stringify(this.props.lightingData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
@@ -88,16 +105,41 @@ class LightingPanel extends React.Component <{ lightingData: ObserverData['light
         const props = this.props;
         return (
             <Panel headerText='LIGHTING' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
-                    <Select label='Environment' type='string' options={JSON.parse(props.lightingData.env.options)} value={props.lightingData.env.value} setProperty={(value: string) => props.setProperty('lighting.env.value', value)} />
-                    <Select label='Skybox Level' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} value={props.lightingData.env.skyboxMip} setProperty={(value: number) => props.setProperty('lighting.env.skyboxMip', value)} />
-                    <Slider label='Exposure' precision={2} min={-6} max={6} value={props.lightingData.env.exposure} setProperty={(value: number) => props.setProperty('lighting.env.exposure', value)} />
-                    <Slider label='Rotation' precision={0} min={-180} max={180} value={props.lightingData.rotation} setProperty={(value: number) => props.setProperty('lighting.rotation', value)} />
-                    <Slider label='Direct' precision={2} min={0} max={6} value={props.lightingData.direct} setProperty={(value: number) => props.setProperty('lighting.direct', value)} />
-                    <Toggle label='Shadow' value={props.lightingData.shadow} setProperty={(value: boolean) => props.setProperty('lighting.shadow', value)} />
+                    <Slider label='Intencity' precision={2} min={0} max={6} value={props.lightingData.mainLight.intencity} setProperty={(value: number) => props.setProperty('lighting.mainLight.intencity', value)} />
+                    <Slider label='Color_R' precision={0} min={0} max={255} value={props.lightingData.mainLight.color_r} setProperty={(value: number) => props.setProperty('lighting.mainLight.color_r', value)} />
+                    <Slider label='Color_G' precision={0} min={0} max={255} value={props.lightingData.mainLight.color_g} setProperty={(value: number) => props.setProperty('lighting.mainLight.color_g', value)} />
+                    <Slider label='Color_B' precision={0} min={0} max={255} value={props.lightingData.mainLight.color_b} setProperty={(value: number) => props.setProperty('lighting.mainLight.color_b', value)} />
+                    <Slider label='Rotation_x' precision={0} min={-180} max={180} value={props.lightingData.mainLight.rotation_x} setProperty={(value: number) => props.setProperty('lighting.mainLight.rotation_x', value)} />
+                    <Slider label='Rotation_y' precision={0} min={-180} max={180} value={props.lightingData.mainLight.rotation_y} setProperty={(value: number) => props.setProperty('lighting.mainLight.rotation_y', value)} />
+                    <Slider label='Rotation_z' precision={0} min={-180} max={180} value={props.lightingData.mainLight.rotation_z} setProperty={(value: number) => props.setProperty('lighting.mainLight.rotation_z', value)} />
+                    <Toggle label='Shadow' value={props.lightingData.mainLight.shadow} setProperty={(value: boolean) => props.setProperty('lighting.mainLight.shadow', value)} />
+                    <Select label='Shadow Resolution' value={props.lightingData.mainLight.shadowResolution} type='number' options={[512, 1024, 2048, 4096].map(v => ({ v: v, t: Number(v).toString() }))} setProperty={(value: number) => props.setProperty('lighting.mainLight.shadowResolution', value)} />
+                    <Slider label='Shadow Intencity' precision={2} min={0} max={5} value={props.lightingData.mainLight.shadowIntencity} setProperty={(value: number) => props.setProperty('lighting.mainLight.shadowIntencity', value)} />
             </Panel>
         );
     }
 }
+class SubLightingPanel extends React.Component <{ lightingData: ObserverData['lighting'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ lightingData: ObserverData['lighting']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.lightingData) !== JSON.stringify(this.props.lightingData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <Panel headerText='SUB LIGHTING' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+                    <Slider label='Intencity' precision={2} min={0} max={6} value={props.lightingData.subLight.intencity} setProperty={(value: number) => props.setProperty('lighting.subLight.intencity', value)} />
+                    <Slider label='Color_R' precision={0} min={0} max={255} value={props.lightingData.subLight.color_r} setProperty={(value: number) => props.setProperty('lighting.subLight.color_r', value)} />
+                    <Slider label='Color_G' precision={0} min={0} max={255} value={props.lightingData.subLight.color_g} setProperty={(value: number) => props.setProperty('lighting.subLight.color_g', value)} />
+                    <Slider label='Color_B' precision={0} min={0} max={255} value={props.lightingData.subLight.color_b} setProperty={(value: number) => props.setProperty('lighting.subLight.color_b', value)} />
+                    <Slider label='Rotation_x' precision={0} min={-180} max={180} value={props.lightingData.subLight.rotation_x} setProperty={(value: number) => props.setProperty('lighting.subLight.rotation_x', value)} />
+                    <Slider label='Rotation_y' precision={0} min={-180} max={180} value={props.lightingData.subLight.rotation_y} setProperty={(value: number) => props.setProperty('lighting.subLight.rotation_y', value)} />
+                    <Slider label='Rotation_z' precision={0} min={-180} max={180} value={props.lightingData.subLight.rotation_z} setProperty={(value: number) => props.setProperty('lighting.subLight.rotation_z', value)} />
+            </Panel>
+        );
+    }
+}
+
 class ShowPanel extends React.Component <{ showData: ObserverData['show'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ showData: ObserverData['show']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.showData) !== JSON.stringify(this.props.showData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
@@ -157,7 +199,9 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                 <div id='scene-scrolly-bits'>
                     <ScenePanel sceneData={scene} setProperty={this.props.setProperty} />
                     <CameraPanel setProperty={this.props.setProperty} observerData={this.props.observerData} />
+                    <EnvironmentPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <LightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
+                    <SubLightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <ShowPanel setProperty={this.props.setProperty} showData={this.props.observerData.show} uiData={this.props.observerData.ui} />    
                 </div>
             </Container>

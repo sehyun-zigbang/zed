@@ -7,7 +7,6 @@ import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 
 import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 
-import { getAssetPath } from './helpers';
 import { DropHandler } from './drop-handler';
 import { File, HierarchyNode } from './types';
 import { DebugLines } from './debug';
@@ -33,6 +32,7 @@ class Viewer {
     cameraFocusBBox: pc.BoundingBox | null;
     cameraPosition: pc.Vec3 | null;
     light: pc.Entity;
+    sublight: pc.Entity;
     sceneRoot: pc.Entity;
     debugRoot: pc.Entity;
     entities: Array<pc.Entity>;
@@ -186,18 +186,32 @@ class Viewer {
         // 라이트 수정 가능
         // create the light
         const light = new pc.Entity();
+
+        var lightColor = new pc.Color(1, 1, 1);
+        var intensity = 1;
+        var rotation = new pc.Vec3(45, 30, 0);
         light.addComponent("light", {
             type: "directional",
-            color: new pc.Color(1, 1, 1),
+            color: lightColor,
             castShadows: true,
-            intensity: 1,
+            intensity: intensity,
             shadowBias: 0.2,
             shadowDistance: 5,
             normalOffsetBias: 0.05,
             shadowResolution: 2048
         });
-        light.setLocalEulerAngles(45, 30, 0);
+        light.setLocalEulerAngles(rotation);
         app.root.addChild(light);
+
+        const sublight = new pc.Entity();
+        sublight.addComponent("light", {
+            type: "directional",
+            color: lightColor,
+            castShadows: false,
+            intensity: intensity
+        });
+        sublight.setLocalEulerAngles(rotation);
+        app.root.addChild(sublight);
 
         // disable autorender
         app.autoRender = false;
@@ -219,6 +233,7 @@ class Viewer {
         this.cameraFocusBBox = null;
         this.cameraPosition = null;
         this.light = light;
+        this.sublight = sublight;
         this.sceneRoot = sceneRoot;
         this.debugRoot = debugRoot;
         this.entities = [];
@@ -428,8 +443,10 @@ class Viewer {
             'show.normals': this.setNormalLength.bind(this),
             'show.fov': this.setFov.bind(this),
 
-            'lighting.shadow': this.setDirectShadow.bind(this),
-            'lighting.direct': this.setDirectLighting.bind(this),
+            // tone
+            'lighting.tonemapping': this.setTonemapping.bind(this),
+
+            // env
             'lighting.env.value': (value: string) => {
                 if (value && value !== 'None') {
                     this.loadFiles([{ url: value, filename: value }]);
@@ -440,8 +457,28 @@ class Viewer {
             'lighting.env.skyboxMip': this.setSkyboxMip.bind(this),
             'lighting.env.exposure': this.setEnvExposure.bind(this),
             'lighting.env.backgroundColor': this.setBackgroundColor.bind(this),
-            'lighting.rotation': this.setLightingRotation.bind(this),
-            'lighting.tonemapping': this.setTonemapping.bind(this),
+            'lighting.env.rotation': this.setEnvRotation.bind(this),
+            
+            // main light
+            'lighting.mainLight.intencity': this.setMainLightingIntencity.bind(this),
+            'lighting.mainLight.color_r': this.setMainLightingColor_r.bind(this),
+            'lighting.mainLight.color_g': this.setMainLightingColor_g.bind(this),
+            'lighting.mainLight.color_b': this.setMainLightingColor_b.bind(this),
+            'lighting.mainLight.rotation_x': this.setMainLightingRotation_x.bind(this),
+            'lighting.mainLight.rotation_y': this.setMainLightingRotation_y.bind(this),
+            'lighting.mainLight.rotation_z': this.setMainLightingRotation_z.bind(this),
+            'lighting.mainLight.shadow': this.setMainLightShadow.bind(this),
+            'lighting.mainLight.shadowResolution': this.setMainLightShadowResulution.bind(this),
+            'lighting.mainLight.shadowIntencity': this.setMainLightShadowIntencity.bind(this),
+
+            // main light
+            'lighting.subLight.intencity': this.setSubLightingIntencity.bind(this),
+            'lighting.subLight.color_r': this.setSubLightingColor_r.bind(this),
+            'lighting.subLight.color_g': this.setSubLightingColor_g.bind(this),
+            'lighting.subLight.color_b': this.setSubLightingColor_b.bind(this),
+            'lighting.subLight.rotation_x': this.setSubLightingRotation_x.bind(this),
+            'lighting.subLight.rotation_y': this.setSubLightingRotation_y.bind(this),
+            'lighting.subLight.rotation_z': this.setSubLightingRotation_z.bind(this),
 
             'scene.variant.selected': this.setSelectedVariant.bind(this)
         };
@@ -1011,25 +1048,108 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setDirectLighting(factor: number) {
-        this.light.light.intensity = factor;
-        this.renderNextFrame();
-    }
-
-    setDirectShadow(enable: boolean) {
-        this.light.light.castShadows = enable;
-        this.renderNextFrame();
-    }
-
-    setLightingRotation(factor: number) {
+    
+    setEnvRotation(factor: number) {
         // update skybox
         const rot = new pc.Quat();
         rot.setFromEulerAngles(0, factor, 0);
         this.app.scene.skyboxRotation = rot;
 
-        // update directional light
-        this.light.setLocalEulerAngles(45, 30 + factor, 0);
+        this.renderNextFrame();
+    }
 
+    setMainLightingIntencity(factor: number) {
+        this.light.light.intensity = factor;
+        this.renderNextFrame();
+    }
+    setMainLightingColor_r(value: number) {
+        var color = this.light.light.color;
+        color.r = value / 255;
+        this.light.light.color = color;
+        this.renderNextFrame();
+    }
+    setMainLightingColor_g(value: number) {
+        var color = this.light.light.color;
+        color.g = value / 255;
+        this.light.light.color = color;
+        this.renderNextFrame();
+    }
+    setMainLightingColor_b(value: number) {
+        var color = this.light.light.color;
+        color.b = value / 255;
+        this.light.light.color = color;
+        this.renderNextFrame();
+    }
+    setMainLightingRotation_x(factor: number) {
+        var angle = this.light.getLocalEulerAngles();
+        angle.x = factor;
+        this.light.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setMainLightingRotation_y(factor: number) {
+        var angle = this.light.getLocalEulerAngles();
+        angle.y = factor;
+        this.light.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setMainLightingRotation_z(factor: number) {
+        var angle = this.light.getLocalEulerAngles();
+        angle.z = factor;
+        this.light.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setMainLightShadow(enable: boolean) {
+        this.light.light.castShadows = enable;
+        this.renderNextFrame();
+    }
+    setMainLightShadowIntencity(value: number) {
+        this.light.light.shadowIntensity = value;
+        this.renderNextFrame();
+    }
+    setMainLightShadowResulution(value: number) {
+        this.light.light.shadowResolution = value;
+        this.renderNextFrame();
+    }
+
+
+    setSubLightingIntencity(factor: number) {
+        this.sublight.light.intensity = factor;
+        this.renderNextFrame();
+    }
+    setSubLightingColor_r(value: number) {
+        var color = this.sublight.light.color;
+        color.r = value / 255;
+        this.sublight.light.color = color;
+        this.renderNextFrame();
+    }
+    setSubLightingColor_g(value: number) {
+        var color = this.sublight.light.color;
+        color.g = value / 255;
+        this.sublight.light.color = color;
+        this.renderNextFrame();
+    }
+    setSubLightingColor_b(value: number) {
+        var color = this.sublight.light.color;
+        color.b = value / 255;
+        this.sublight.light.color = color;
+        this.renderNextFrame();
+    }
+    setSubLightingRotation_x(factor: number) {
+        var angle = this.sublight.getLocalEulerAngles();
+        angle.x = factor;
+        this.sublight.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setSubLightingRotation_y(factor: number) {
+        var angle = this.sublight.getLocalEulerAngles();
+        angle.y = factor;
+        this.sublight.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setSubLightingRotation_z(factor: number) {
+        var angle = this.sublight.getLocalEulerAngles();
+        angle.z = factor;
+        this.sublight.setLocalEulerAngles(angle);
         this.renderNextFrame();
     }
 

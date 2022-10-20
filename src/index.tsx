@@ -43,16 +43,36 @@ const observerData: ObserverData = {
     },
     lighting: {
         direct: 0.6,
-        shadow: true,
         env: {
             value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
             options: null,
             default: null,
             skyboxMip: '4',
             exposure: 0.2,
-            backgroundColor: { r: 0.4, g: 0.45, b: 0.5 }
+            backgroundColor: { r: 0.4, g: 0.45, b: 0.5 },
+            rotation: -10
         },
-        rotation: -10,
+        mainLight: {
+            intencity: 0.6,
+            color_r: 255,
+            color_g: 255,
+            color_b: 255,
+            rotation_x: 45,
+            rotation_y: 30,
+            rotation_z: 0,
+            shadow: true,
+            shadowResolution: 4096,
+            shadowIntencity: 2
+        },
+        subLight: {
+            intencity: 0.45,
+            color_r: 100,
+            color_g: 255,
+            color_b: 255,
+            rotation_x: -50,
+            rotation_y: 30,
+            rotation_z: 0,
+        },
         tonemapping: 'ACES'
     },
     animation: {
