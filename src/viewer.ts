@@ -12,6 +12,8 @@ import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
 
+import { getAssetPath } from './helpers';
+
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
 
@@ -87,7 +89,7 @@ class Viewer {
         this.app = app;
 
         const assets = {
-            'bloom': new pc.Asset('bloom', 'script', { url: '/static/effect/bloom.js' })
+            'bloom': new pc.Asset('bloom', 'script', { url: getAssetPath('effect/bloom.js') })
         };
     
         const assetListLoader = new pc.AssetListLoader(Object.values(assets), app.assets);
