@@ -62,7 +62,7 @@ const observerData: ObserverData = {
             rotation_z: 0,
             shadow: true,
             shadowResolution: 4096,
-            shadowIntencity: 2
+            shadowIntencity: 1.5
         },
         subLight: {
             intencity: 0.45,
@@ -70,7 +70,7 @@ const observerData: ObserverData = {
             color_g: 255,
             color_b: 255,
             rotation_x: -50,
-            rotation_y: 30,
+            rotation_y: -150,
             rotation_z: 0,
         },
         tonemapping: 'ACES'
