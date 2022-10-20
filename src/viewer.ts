@@ -186,7 +186,6 @@ class Viewer {
         // 라이트 수정 가능
         // create the light
         const light = new pc.Entity();
-
         var lightColor = new pc.Color(1, 1, 1);
         var intensity = 1;
         var rotation = new pc.Vec3(45, 30, 0);

@@ -75,15 +75,6 @@ const observerData: ObserverData = {
         },
         tonemapping: 'ACES'
     },
-    animation: {
-        playing: false,
-        speed: 1.0,
-        transition: 0.1,
-        loops: 1,
-        list: '[]',
-        progress: 0,
-        selectedTrack: 'ALL_TRACKS'
-    },
     scene: {
         nodes: '[]',
         selectedNode: {
@@ -118,7 +109,6 @@ const observerData: ObserverData = {
         },
         loadTime: null
     },
-    morphs: null,
     spinner: false,
     error: null,
     xrSupported: false,

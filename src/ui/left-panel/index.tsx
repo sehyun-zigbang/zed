@@ -69,7 +69,7 @@ class CameraPanel extends React.Component <{ observerData: ObserverData, setProp
                 <Toggle label='Multisample' value={props.observerData.render.multisample} enabled={props.observerData.render.multisampleSupported}
                     setProperty={(value: boolean) => props.setProperty('render.multisample', value)}
                 />
-                <Toggle label='High Quality' value={props.observerData.render.hq} enabled={!props.observerData.animation.playing && !props.observerData.show.stats}
+                <Toggle label='High Quality' value={props.observerData.render.hq} enabled={!props.observerData.show.stats}
                     setProperty={(value: boolean) => props.setProperty('render.hq', value)}
                 />
                 <Toggle label='Stats' value={props.observerData.show.stats}

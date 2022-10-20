@@ -77,15 +77,6 @@ export interface ObserverData {
         },
         tonemapping: string
     },
-    animation: {
-        playing: boolean,
-        speed: number,
-        transition: number,
-        loops: number,
-        list: string,
-        progress: number,
-        selectedTrack: string
-    },
     scene: {
         nodes: string,
         selectedNode: {
@@ -120,10 +111,6 @@ export interface ObserverData {
         },
         loadTime?: number
     },
-    morphs?: Record<string, {
-        name: string,
-        targets: Record<string, MorphTarget>
-    }>,
     spinner: boolean,
     error?: string,
     xrSupported: boolean,
