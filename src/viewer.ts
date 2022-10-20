@@ -308,123 +308,6 @@ class Viewer {
         // start the application
         app.start();
     }
-
-    // extract query params. taken from https://stackoverflow.com/a/21152762
-    handleUrlParams() {
-        const urlParams: any = {};
-        if (location.search) {
-            location.search.substring(1).split("&").forEach((item) => {
-                const s = item.split("="),
-                    k = s[0],
-                    v = s[1] && decodeURIComponent(s[1]);
-                (urlParams[k] = urlParams[k] || []).push(v);
-            });
-        }
-
-        // handle load url param
-        const loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
-        if (loadUrls.length > 0) {
-            this.loadFiles(
-                loadUrls.map((url: string) => {
-                    return { url, filename: url };
-                })
-            );
-        }
-        if (loadUrls.length === 1) {
-            this.observer.set('glbUrl', loadUrls[0]);
-        }
-
-        // set camera position
-        if (urlParams.hasOwnProperty('cameraPosition')) {
-            const pos = urlParams.cameraPosition[0].split(',').map(Number);
-            if (pos.length === 3) {
-                this.cameraPosition = new pc.Vec3(pos);
-            }
-        }
-    }
-
-    // collects all mesh instances from entity hierarchy
-    private collectMeshInstances(entity: pc.Entity) {
-        const meshInstances: Array<pc.MeshInstance> = [];
-        if (entity) {
-            const components = entity.findComponents("render");
-            for (let i = 0; i < components.length; i++) {
-                const render = components[i] as pc.RenderComponent;
-                if (render.meshInstances) {
-                    for (let m = 0; m < render.meshInstances.length; m++) {
-                        const meshInstance = render.meshInstances[m];
-                        meshInstances.push(meshInstance);
-                    }
-                }
-            }
-        }
-        return meshInstances;
-    }
-
-    private updateMeshInstanceList() {
-
-        this.meshInstances = [];
-        for (let e = 0; e < this.entities.length; e++) {
-            const meshInstances = this.collectMeshInstances(this.entities[e]);
-            this.meshInstances = this.meshInstances.concat(meshInstances);
-        }
-    }
-
-    // calculate the bounding box of the given mesh
-    private static calcMeshBoundingBox(meshInstances: Array<pc.MeshInstance>) {
-        const bbox = new pc.BoundingBox();
-        for (let i = 0; i < meshInstances.length; ++i) {
-            if (i === 0) {
-                bbox.copy(meshInstances[i].aabb);
-            } else {
-                bbox.add(meshInstances[i].aabb);
-            }
-        }
-        return bbox;
-    }
-
-    // calculate the bounding box of the graph-node hierarchy
-    private static calcHierBoundingBox(rootNode: pc.Entity) {
-        const position = rootNode.getPosition();
-        let min_x = position.x;
-        let min_y = position.y;
-        let min_z = position.z;
-        let max_x = position.x;
-        let max_y = position.y;
-        let max_z = position.z;
-
-        const recurse = (node: pc.GraphNode) => {
-            const p = node.getPosition();
-            if (p.x < min_x) min_x = p.x; else if (p.x > max_x) max_x = p.x;
-            if (p.y < min_y) min_y = p.y; else if (p.y > max_y) max_y = p.y;
-            if (p.z < min_z) min_z = p.z; else if (p.z > max_z) max_z = p.z;
-            for (let i = 0; i < node.children.length; ++i) {
-                recurse(node.children[i]);
-            }
-        };
-        recurse(rootNode);
-
-        const result = new pc.BoundingBox();
-        result.setMinMax(new pc.Vec3(min_x, min_y, min_z), new pc.Vec3(max_x, max_y, max_z));
-        return result;
-    }
-
-    // calculate the intersection of the two bounding boxes
-    private static calcBoundingBoxIntersection(bbox1: pc.BoundingBox, bbox2: pc.BoundingBox) {
-        // bounds don't intersect
-        if (!bbox1.intersects(bbox2)) {
-            return null;
-        }
-        const min1 = bbox1.getMin();
-        const max1 = bbox1.getMax();
-        const min2 = bbox2.getMin();
-        const max2 = bbox2.getMax();
-        const result = new pc.BoundingBox();
-        result.setMinMax(new pc.Vec3(Math.max(min1.x, min2.x), Math.max(min1.y, min2.y), Math.max(min1.z, min2.z)),
-                         new pc.Vec3(Math.min(max1.x, max2.x), Math.min(max1.y, max2.y), Math.min(max1.z, max2.z)));
-        return result;
-    }
-
     // construct the controls interface and initialize controls
     private bindControlEvents() {
         const controlEvents:any = {
@@ -494,13 +377,393 @@ class Viewer {
         });
     }
 
+    
+    //#region SceneData
+    // reset the viewer, unloading resources
+    resetScene() {
+        const app = this.app;
+
+        this.entities.forEach((entity) => {
+            this.sceneRoot.removeChild(entity);
+            entity.destroy();
+        });
+        this.entities = [];
+        this.entityAssets = [];
+
+        this.assets.forEach((asset) => {
+            app.assets.remove(asset);
+            asset.unload();
+        });
+        this.assets = [];
+
+        this.meshInstances = [];
+
+        this.observer.set('scene.variants.list', '[]');
+
+        this.updateSceneInfo();
+
+        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
+        this.renderNextFrame();
+    }
+    updateSceneInfo() {
+        let meshCount = 0;
+        let vertexCount = 0;
+        let primitiveCount = 0;
+        let variants: string[] = [];
+
+        // update mesh stats
+        this.assets.forEach((asset) => {
+            variants = variants.concat(asset.resource.getMaterialVariants());
+            asset.resource.renders.forEach((renderAsset: pc.Asset) => {
+                renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
+                    meshCount++;
+                    vertexCount += mesh.vertexBuffer.getNumVertices();
+                    primitiveCount += mesh.primitive[0].count;
+                });
+            });
+        });
+
+        const graph: Array<HierarchyNode> = this.entities.map((entity) => {
+            return {
+                name: entity.name,
+                path: entity.path,
+                children: []
+            };
+        });
+
+        // hierarchy
+        this.observer.set('scene.nodes', JSON.stringify(graph));
+
+        // mesh stats
+        this.observer.set('scene.meshCount', meshCount);
+        this.observer.set('scene.vertexCount', vertexCount);
+        this.observer.set('scene.primitiveCount', primitiveCount);
+
+        // variant stats
+        this.observer.set('scene.variants.list', JSON.stringify(variants));
+        this.observer.set('scene.variant.selected', variants[0]);
+    }
+    // add a loaded asset to the scene
+    // asset is a container asset with renders and/or animations
+    private addToScene(err: string, asset: pc.Asset) {
+        //this.observer.set('spinner', false);
+        
+        if (err) {
+            this.observer.set('error', err);
+            return;
+        }
+
+        const resource = asset.resource;
+        const meshesLoaded = resource.renders && resource.renders.length > 0;
+        const prevEntity : pc.Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
+
+        let entity: pc.Entity;
+
+        // create entity
+        if (!meshesLoaded && prevEntity && prevEntity.findComponent("render")) {
+            entity = prevEntity;
+        } else {
+            entity = asset.resource.instantiateRenderEntity();
+            this.entities.push(entity);
+            this.entityAssets.push({ entity: entity, asset: asset });
+            this.sceneRoot.addChild(entity);
+        }
+
+        // store the loaded asset
+        this.assets.push(asset);
+
+        // update
+        this.updateSceneInfo();
+
+        // construct a list of meshInstances so we can quickly access them when configuring wireframe rendering etc.
+        this.updateMeshInstanceList();
+
+        // if no meshes are loaded then enable skeleton rendering so user can see something
+        if (this.meshInstances.length === 0) {
+            this.observer.set('show.skeleton', true);
+        }
+
+        // dirty everything
+        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
+
+        // we can't refocus the camera here because the scene hierarchy only gets updated
+        // during render. we must instead set a flag, wait for a render to take place and
+        // then focus the camera.
+        this.firstFrame = true;
+        this.renderNextFrame();
+    }
+    //#endregion
+
+    //#region Camera
+    // move the camera to view the loaded object
+    focusCamera() {
+        const camera = this.camera.camera;
+
+        const bbox = this.calcSceneBounds();
+
+        if (this.cameraFocusBBox) {
+            const intersection = Viewer.calcBoundingBoxIntersection(this.cameraFocusBBox, bbox);
+            if (intersection) {
+                const len1 = bbox.halfExtents.length();
+                const len2 = this.cameraFocusBBox.halfExtents.length();
+                const len3 = intersection.halfExtents.length();
+                if ((Math.abs(len3 - len1) / len1 < 0.1) &&
+                    (Math.abs(len3 - len2) / len2 < 0.1)) {
+                    return;
+                }
+            }
+        }
+
+        // calculate scene bounding box
+        const radius = bbox.halfExtents.length();
+        const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
+
+        if (this.cameraPosition) {
+            const vec = bbox.center.clone().sub(this.cameraPosition);
+            this.orbitCamera.vecToAzimElevDistance(vec, vec);
+            this.orbitCamera.azimElevDistance.snapto(vec);
+            this.cameraPosition = null;
+        } else {
+            const aed = this.orbitCamera.azimElevDistance.target.clone();
+            aed.z = distance;
+            this.orbitCamera.azimElevDistance.snapto(aed);
+        }
+        this.orbitCamera.setBounds(bbox);
+        this.orbitCamera.focalPoint.snapto(bbox.center);
+        camera.nearClip = distance / 100;
+        camera.farClip = distance * 10;
+
+        const light = this.light;
+        light.light.shadowDistance = distance * 2;
+
+        this.cameraFocusBBox = bbox;
+    }
+    //#endregion
+
+    //#region UI
+
+    private getCanvasSize() {
+        return {
+            width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth, // - document.getElementById("panel-right").offsetWidth,
+            height: document.body.clientHeight
+        };
+    }
+    resizeCanvas() {
+        const observer = this.observer;
+
+        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+        const canvasSize = this.getCanvasSize();
+
+        device.maxPixelRatio = window.devicePixelRatio;
+        this.app.resizeCanvas(canvasSize.width, canvasSize.height);
+        this.renderNextFrame();
+
+        const createTexture = (width: number, height: number, format: number) => {
+            return new pc.Texture(device, {
+                width: width,
+                height: height,
+                format: format,
+                mipmaps: false,
+                minFilter: pc.FILTER_NEAREST,
+                magFilter: pc.FILTER_NEAREST,
+                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE
+            });
+        };
+
+        // out with the old
+        const old = this.camera.camera.renderTarget;
+        if (old) {
+            old.colorBuffer.destroy();
+            old.depthBuffer.destroy();
+            old.destroy();
+        }
+
+        // in with the new
+        const pixelScale = observer.get('render.pixelScale');
+        const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
+        const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
+        const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
+        const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
+        const renderTarget = new pc.RenderTarget({
+            colorBuffer: colorBuffer,
+            depthBuffer: depthBuffer,
+            flipY: false,
+            samples: observer.get('render.multisample') ? device.maxSamples : 1,
+            autoResolve: false
+        });
+        this.camera.camera.renderTarget = renderTarget;
+    }
+
+    //#endregion
+
+    //#region Load Model
+    // load gltf model given its url and list of external urls
+    private loadGltf(gltfUrl: File, externalUrls: Array<File>, finishedCallback: (err: string | null, asset: pc.Asset) => void) {
+
+        // provide buffer view callback so we can handle models compressed with MeshOptimizer
+        // https://github.com/zeux/meshoptimizer
+        const processBufferView = function (gltfBuffer: any, buffers: Array<any>, continuation: (err: string, result: any) => void) {
+            if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
+                const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
+
+                const decoder = MeshoptDecoder;
+
+                decoder.ready.then(() => {
+                    const byteOffset = extensionDef.byteOffset || 0;
+                    const byteLength = extensionDef.byteLength || 0;
+
+                    const count = extensionDef.count;
+                    const stride = extensionDef.byteStride;
+
+                    const result = new Uint8Array(count * stride);
+                    const source = new Uint8Array(buffers[extensionDef.buffer].buffer,
+                                                buffers[extensionDef.buffer].byteOffset + byteOffset,
+                                                byteLength);
+
+                    decoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
+
+                    continuation(null, result);
+                });
+            } else {
+                continuation(null, null);
+            }
+        };
+
+        const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
+            const u: File = externalUrls.find((url) => {
+                return url.filename === pc.path.normalize(gltfImage.uri || "");
+            });
+            if (u) {
+                const textureAsset = new pc.Asset(u.filename, 'texture', {
+                    url: u.url,
+                    filename: u.filename
+                });
+                textureAsset.on('load', () => {
+                    continuation(null, textureAsset);
+                });
+                this.app.assets.add(textureAsset);
+                this.app.assets.load(textureAsset);
+            } else {
+                continuation(null, null);
+            }
+        };
+
+        const postProcessImage = (gltfImage: any, textureAsset: pc.Asset) => {
+            // max anisotropy on all textures
+            textureAsset.resource.anisotropy = this.app.graphicsDevice.maxAnisotropy;
+        };
+
+        const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
+            const u = externalUrls.find((url) => {
+                return url.filename === pc.path.normalize(gltfBuffer.uri || "");
+            });
+            if (u) {
+                const bufferAsset = new pc.Asset(u.filename, 'binary', {
+                    url: u.url,
+                    filename: u.filename
+                });
+                bufferAsset.on('load', () => {
+                    continuation(null, new Uint8Array(bufferAsset.resource));
+                });
+                this.app.assets.add(bufferAsset);
+                this.app.assets.load(bufferAsset);
+            } else {
+                continuation(null, null);
+            }
+        };
+
+        const containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
+            // @ts-ignore TODO no definition in pc
+            bufferView: {
+                processAsync: processBufferView.bind(this)
+            },
+            image: {
+                processAsync: processImage.bind(this),
+                postprocess: postProcessImage
+            },
+            buffer: {
+                processAsync: processBuffer.bind(this)
+            }
+        });
+        containerAsset.on('load', () => {
+            finishedCallback(null, containerAsset);
+        });
+        containerAsset.on('error', (err : string) => {
+            finishedCallback(err, containerAsset);
+        });
+
+        this.observer.set('spinner', true);
+        this.observer.set('error', null);
+        this.clearCta();
+
+        this.app.assets.add(containerAsset);
+        this.app.assets.load(containerAsset);
+    }
+
+    // returns true if the filename has one of the recognized model extensions
+    isModelFilename(filename: string) {
+        const filenameExt = pc.path.getExtension(filename).toLowerCase();
+        return modelExtensions.indexOf(filenameExt) !== -1;
+    }
+
+    // load the list of urls.
+    // urls can reference glTF files, glb files and skybox textures.
+    // returns true if a model was loaded.
+    loadFiles(files: Array<File>, resetScene = false) {
+        // convert single url to list
+        if (!Array.isArray(files)) {
+            files = [files];
+        }
+
+        // check if any file is a model
+        const hasModelFilename = files.reduce((p, f) => p || this.isModelFilename(f.filename), false);
+
+        if (hasModelFilename) {
+            if (resetScene) {
+                this.resetScene();
+            }
+
+            const loadTimestamp = Date.now();
+
+            // kick off simultaneous asset load
+            let awaiting = 0;
+            const assets: { err: string, asset: pc.Asset }[] = [];
+            files.forEach((file, index) => {
+                if (this.isModelFilename(file.filename)) {
+                    awaiting++;
+                    this.loadGltf(file, files, (err, asset) => {
+                        assets[index] = { err: err, asset: asset };
+                        if (--awaiting === 0) {
+                            this.loadTimestamp = loadTimestamp;
+
+                            // done loading assets, add them to the scene
+                            assets.forEach((asset) => {
+                                if (asset) {
+                                    this.addToScene(asset.err, asset.asset);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        } else {
+            // load skybox
+            this.loadSkybox(files);
+        }
+
+        // return true if a model/scene was loaded and false otherwise
+        return hasModelFilename;
+    }
+    //#endregion
+
+    //#region Load Skybox
     private clearSkybox() {
         this.app.scene.envAtlas = null;
         this.app.scene.setSkybox(null);
         this.renderNextFrame();
         this.skyboxLoaded = false;
     }
-
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
     private initSkyboxFromTextureNew(env: pc.Texture) {
@@ -647,540 +910,9 @@ class Viewer {
         this.skyboxLoaded = true;
     }
 
-    private getCanvasSize() {
-        return {
-            width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth, // - document.getElementById("panel-right").offsetWidth,
-            height: document.body.clientHeight
-        };
-    }
+    //#endregion
 
-    resizeCanvas() {
-        const observer = this.observer;
-
-        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
-        const canvasSize = this.getCanvasSize();
-
-        device.maxPixelRatio = window.devicePixelRatio;
-        this.app.resizeCanvas(canvasSize.width, canvasSize.height);
-        this.renderNextFrame();
-
-        const createTexture = (width: number, height: number, format: number) => {
-            return new pc.Texture(device, {
-                width: width,
-                height: height,
-                format: format,
-                mipmaps: false,
-                minFilter: pc.FILTER_NEAREST,
-                magFilter: pc.FILTER_NEAREST,
-                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE
-            });
-        };
-
-        // out with the old
-        const old = this.camera.camera.renderTarget;
-        if (old) {
-            old.colorBuffer.destroy();
-            old.depthBuffer.destroy();
-            old.destroy();
-        }
-
-        // in with the new
-        const pixelScale = observer.get('render.pixelScale');
-        const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
-        const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
-        const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
-        const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
-        const renderTarget = new pc.RenderTarget({
-            colorBuffer: colorBuffer,
-            depthBuffer: depthBuffer,
-            flipY: false,
-            samples: observer.get('render.multisample') ? device.maxSamples : 1,
-            autoResolve: false
-        });
-        this.camera.camera.renderTarget = renderTarget;
-    }
-
-    // reset the viewer, unloading resources
-    resetScene() {
-        const app = this.app;
-
-        this.entities.forEach((entity) => {
-            this.sceneRoot.removeChild(entity);
-            entity.destroy();
-        });
-        this.entities = [];
-        this.entityAssets = [];
-
-        this.assets.forEach((asset) => {
-            app.assets.remove(asset);
-            asset.unload();
-        });
-        this.assets = [];
-
-        this.meshInstances = [];
-
-        this.observer.set('scene.variants.list', '[]');
-
-        this.updateSceneInfo();
-
-        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
-        this.renderNextFrame();
-    }
-
-    updateSceneInfo() {
-        let meshCount = 0;
-        let vertexCount = 0;
-        let primitiveCount = 0;
-        let variants: string[] = [];
-
-        // update mesh stats
-        this.assets.forEach((asset) => {
-            variants = variants.concat(asset.resource.getMaterialVariants());
-            asset.resource.renders.forEach((renderAsset: pc.Asset) => {
-                renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
-                    meshCount++;
-                    vertexCount += mesh.vertexBuffer.getNumVertices();
-                    primitiveCount += mesh.primitive[0].count;
-                });
-            });
-        });
-
-        const graph: Array<HierarchyNode> = this.entities.map((entity) => {
-            return {
-                name: entity.name,
-                path: entity.path,
-                children: []
-            };
-        });
-
-        // hierarchy
-        this.observer.set('scene.nodes', JSON.stringify(graph));
-
-        // mesh stats
-        this.observer.set('scene.meshCount', meshCount);
-        this.observer.set('scene.vertexCount', vertexCount);
-        this.observer.set('scene.primitiveCount', primitiveCount);
-
-        // variant stats
-        this.observer.set('scene.variants.list', JSON.stringify(variants));
-        this.observer.set('scene.variant.selected', variants[0]);
-    }
-
-    downloadPngScreenshot() {
-        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
-
-        // save the backbuffer
-        const w = device.width;
-        const h = device.height;
-        const data = new Uint8Array(w * h * 4);
-        device.setRenderTarget(null);
-        device.gl.readPixels(0, 0, w, h, device.gl.RGBA, device.gl.UNSIGNED_BYTE, data);
-        this.pngExporter.export('model-viewer.png', new Uint32Array(data.buffer), w, h);
-    }
-
-    startXr() {
-        if (this.app.xr.isAvailable(pc.XRTYPE_AR)) {
-            this.camera.camera.startXr(pc.XRTYPE_AR, pc.XRSPACE_LOCALFLOOR, {
-                callback: (err) => {
-                    console.log(err);
-                }
-            });
-        }
-    }
-
-    // move the camera to view the loaded object
-    focusCamera() {
-        const camera = this.camera.camera;
-
-        const bbox = this.calcSceneBounds();
-
-        if (this.cameraFocusBBox) {
-            const intersection = Viewer.calcBoundingBoxIntersection(this.cameraFocusBBox, bbox);
-            if (intersection) {
-                const len1 = bbox.halfExtents.length();
-                const len2 = this.cameraFocusBBox.halfExtents.length();
-                const len3 = intersection.halfExtents.length();
-                if ((Math.abs(len3 - len1) / len1 < 0.1) &&
-                    (Math.abs(len3 - len2) / len2 < 0.1)) {
-                    return;
-                }
-            }
-        }
-
-        // calculate scene bounding box
-        const radius = bbox.halfExtents.length();
-        const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
-
-        if (this.cameraPosition) {
-            const vec = bbox.center.clone().sub(this.cameraPosition);
-            this.orbitCamera.vecToAzimElevDistance(vec, vec);
-            this.orbitCamera.azimElevDistance.snapto(vec);
-            this.cameraPosition = null;
-        } else {
-            const aed = this.orbitCamera.azimElevDistance.target.clone();
-            aed.z = distance;
-            this.orbitCamera.azimElevDistance.snapto(aed);
-        }
-        this.orbitCamera.setBounds(bbox);
-        this.orbitCamera.focalPoint.snapto(bbox.center);
-        camera.nearClip = distance / 100;
-        camera.farClip = distance * 10;
-
-        const light = this.light;
-        light.light.shadowDistance = distance * 2;
-
-        this.cameraFocusBBox = bbox;
-    }
-
-    // load gltf model given its url and list of external urls
-    private loadGltf(gltfUrl: File, externalUrls: Array<File>, finishedCallback: (err: string | null, asset: pc.Asset) => void) {
-
-        // provide buffer view callback so we can handle models compressed with MeshOptimizer
-        // https://github.com/zeux/meshoptimizer
-        const processBufferView = function (gltfBuffer: any, buffers: Array<any>, continuation: (err: string, result: any) => void) {
-            if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
-                const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
-
-                const decoder = MeshoptDecoder;
-
-                decoder.ready.then(() => {
-                    const byteOffset = extensionDef.byteOffset || 0;
-                    const byteLength = extensionDef.byteLength || 0;
-
-                    const count = extensionDef.count;
-                    const stride = extensionDef.byteStride;
-
-                    const result = new Uint8Array(count * stride);
-                    const source = new Uint8Array(buffers[extensionDef.buffer].buffer,
-                                                  buffers[extensionDef.buffer].byteOffset + byteOffset,
-                                                  byteLength);
-
-                    decoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
-
-                    continuation(null, result);
-                });
-            } else {
-                continuation(null, null);
-            }
-        };
-
-        const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
-            const u: File = externalUrls.find((url) => {
-                return url.filename === pc.path.normalize(gltfImage.uri || "");
-            });
-            if (u) {
-                const textureAsset = new pc.Asset(u.filename, 'texture', {
-                    url: u.url,
-                    filename: u.filename
-                });
-                textureAsset.on('load', () => {
-                    continuation(null, textureAsset);
-                });
-                this.app.assets.add(textureAsset);
-                this.app.assets.load(textureAsset);
-            } else {
-                continuation(null, null);
-            }
-        };
-
-        const postProcessImage = (gltfImage: any, textureAsset: pc.Asset) => {
-            // max anisotropy on all textures
-            textureAsset.resource.anisotropy = this.app.graphicsDevice.maxAnisotropy;
-        };
-
-        const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
-            const u = externalUrls.find((url) => {
-                return url.filename === pc.path.normalize(gltfBuffer.uri || "");
-            });
-            if (u) {
-                const bufferAsset = new pc.Asset(u.filename, 'binary', {
-                    url: u.url,
-                    filename: u.filename
-                });
-                bufferAsset.on('load', () => {
-                    continuation(null, new Uint8Array(bufferAsset.resource));
-                });
-                this.app.assets.add(bufferAsset);
-                this.app.assets.load(bufferAsset);
-            } else {
-                continuation(null, null);
-            }
-        };
-
-        const containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
-            // @ts-ignore TODO no definition in pc
-            bufferView: {
-                processAsync: processBufferView.bind(this)
-            },
-            image: {
-                processAsync: processImage.bind(this),
-                postprocess: postProcessImage
-            },
-            buffer: {
-                processAsync: processBuffer.bind(this)
-            }
-        });
-        containerAsset.on('load', () => {
-            finishedCallback(null, containerAsset);
-        });
-        containerAsset.on('error', (err : string) => {
-            finishedCallback(err, containerAsset);
-        });
-
-        this.observer.set('spinner', true);
-        this.observer.set('error', null);
-        this.clearCta();
-
-        this.app.assets.add(containerAsset);
-        this.app.assets.load(containerAsset);
-    }
-
-    // returns true if the filename has one of the recognized model extensions
-    isModelFilename(filename: string) {
-        const filenameExt = pc.path.getExtension(filename).toLowerCase();
-        return modelExtensions.indexOf(filenameExt) !== -1;
-    }
-
-    // load the list of urls.
-    // urls can reference glTF files, glb files and skybox textures.
-    // returns true if a model was loaded.
-    loadFiles(files: Array<File>, resetScene = false) {
-        // convert single url to list
-        if (!Array.isArray(files)) {
-            files = [files];
-        }
-
-        // check if any file is a model
-        const hasModelFilename = files.reduce((p, f) => p || this.isModelFilename(f.filename), false);
-
-        if (hasModelFilename) {
-            if (resetScene) {
-                this.resetScene();
-            }
-
-            const loadTimestamp = Date.now();
-
-            // kick off simultaneous asset load
-            let awaiting = 0;
-            const assets: { err: string, asset: pc.Asset }[] = [];
-            files.forEach((file, index) => {
-                if (this.isModelFilename(file.filename)) {
-                    awaiting++;
-                    this.loadGltf(file, files, (err, asset) => {
-                        assets[index] = { err: err, asset: asset };
-                        if (--awaiting === 0) {
-                            this.loadTimestamp = loadTimestamp;
-
-                            // done loading assets, add them to the scene
-                            assets.forEach((asset) => {
-                                if (asset) {
-                                    this.addToScene(asset.err, asset.asset);
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        } else {
-            // load skybox
-            this.loadSkybox(files);
-        }
-
-        // return true if a model/scene was loaded and false otherwise
-        return hasModelFilename;
-    }
-
-    setSelectedVariant(variant: string) {
-        if (variant) {
-            this.entityAssets.forEach((entityAsset) => {
-                if (entityAsset.asset.resource.getMaterialVariants().indexOf(variant) !== -1) {
-                    entityAsset.asset.resource.applyMaterialVariant(entityAsset.entity, variant);
-                }
-            });
-            this.renderNextFrame();
-        }
-    }
-
-    setStats(show: boolean) {
-        this.miniStats.enabled = show;
-        this.renderNextFrame();
-    }
-
-    setShowWireframe(show: boolean) {
-        this.showWireframe = show;
-        this.dirtyWireframe = true;
-        this.renderNextFrame();
-    }
-
-    setShowBounds(show: boolean) {
-        this.showBounds = show;
-        this.dirtyBounds = true;
-        this.renderNextFrame();
-    }
-
-    setShowSkeleton(show: boolean) {
-        this.showSkeleton = show;
-        this.dirtySkeleton = true;
-        this.renderNextFrame();
-    }
-
-    setShowAxes(show: boolean) {
-        this.showAxes = show;
-        this.dirtySkeleton = true;
-        this.renderNextFrame();
-    }
-
-    setShowGrid(show: boolean) {
-        this.showGrid = show;
-        this.dirtyGrid = true;
-        this.renderNextFrame();
-    }
-
-    setNormalLength(length: number) {
-        this.normalLength = length;
-        this.dirtyNormals = true;
-        this.renderNextFrame();
-    }
-
-    setFov(fov: number) {
-        this.camera.camera.fov = fov;
-        this.renderNextFrame();
-    }
-
-    
-    setEnvRotation(factor: number) {
-        // update skybox
-        const rot = new pc.Quat();
-        rot.setFromEulerAngles(0, factor, 0);
-        this.app.scene.skyboxRotation = rot;
-
-        this.renderNextFrame();
-    }
-
-    setMainLightingIntencity(factor: number) {
-        this.light.light.intensity = factor;
-        this.renderNextFrame();
-    }
-    setMainLightingColor_r(value: number) {
-        var color = this.light.light.color;
-        color.r = value / 255;
-        this.light.light.color = color;
-        this.renderNextFrame();
-    }
-    setMainLightingColor_g(value: number) {
-        var color = this.light.light.color;
-        color.g = value / 255;
-        this.light.light.color = color;
-        this.renderNextFrame();
-    }
-    setMainLightingColor_b(value: number) {
-        var color = this.light.light.color;
-        color.b = value / 255;
-        this.light.light.color = color;
-        this.renderNextFrame();
-    }
-    setMainLightingRotation_x(factor: number) {
-        var angle = this.light.getLocalEulerAngles();
-        angle.x = factor;
-        this.light.setLocalEulerAngles(angle);
-        this.renderNextFrame();
-    }
-    setMainLightingRotation_y(factor: number) {
-        var angle = this.light.getLocalEulerAngles();
-        angle.y = factor;
-        this.light.setLocalEulerAngles(angle);
-        this.renderNextFrame();
-    }
-    setMainLightingRotation_z(factor: number) {
-        var angle = this.light.getLocalEulerAngles();
-        angle.z = factor;
-        this.light.setLocalEulerAngles(angle);
-        this.renderNextFrame();
-    }
-    setMainLightShadow(enable: boolean) {
-        this.light.light.castShadows = enable;
-        this.renderNextFrame();
-    }
-    setMainLightShadowIntencity(value: number) {
-        this.light.light.shadowIntensity = value;
-        this.renderNextFrame();
-    }
-    setMainLightShadowResulution(value: number) {
-        this.light.light.shadowResolution = value;
-        this.renderNextFrame();
-    }
-
-
-    setSubLightingIntencity(factor: number) {
-        this.sublight.light.intensity = factor;
-        this.renderNextFrame();
-    }
-    setSubLightingColor_r(value: number) {
-        var color = this.sublight.light.color;
-        color.r = value / 255;
-        this.sublight.light.color = color;
-        this.renderNextFrame();
-    }
-    setSubLightingColor_g(value: number) {
-        var color = this.sublight.light.color;
-        color.g = value / 255;
-        this.sublight.light.color = color;
-        this.renderNextFrame();
-    }
-    setSubLightingColor_b(value: number) {
-        var color = this.sublight.light.color;
-        color.b = value / 255;
-        this.sublight.light.color = color;
-        this.renderNextFrame();
-    }
-    setSubLightingRotation_x(factor: number) {
-        var angle = this.sublight.getLocalEulerAngles();
-        angle.x = factor;
-        this.sublight.setLocalEulerAngles(angle);
-        this.renderNextFrame();
-    }
-    setSubLightingRotation_y(factor: number) {
-        var angle = this.sublight.getLocalEulerAngles();
-        angle.y = factor;
-        this.sublight.setLocalEulerAngles(angle);
-        this.renderNextFrame();
-    }
-    setSubLightingRotation_z(factor: number) {
-        var angle = this.sublight.getLocalEulerAngles();
-        angle.z = factor;
-        this.sublight.setLocalEulerAngles(angle);
-        this.renderNextFrame();
-    }
-
-    setEnvExposure(factor: number) {
-        this.app.scene.skyboxIntensity = Math.pow(2, factor);
-        this.renderNextFrame();
-    }
-
-    setTonemapping(tonemapping: string) {
-        const mapping: Record<string, number> = {
-            Linear: pc.TONEMAP_LINEAR,
-            Filmic: pc.TONEMAP_FILMIC,
-            Hejl: pc.TONEMAP_HEJL,
-            ACES: pc.TONEMAP_ACES
-        };
-
-        this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : pc.TONEMAP_ACES;
-        this.renderNextFrame();
-    }
-
-    setBackgroundColor(color: { r: number, g: number, b: number }) {
-        const cnv = (value: number) => Math.max(0, Math.min(255, Math.floor(value * 255)));
-        document.getElementById('canvas-wrapper').style.backgroundColor = `rgb(${cnv(color.r)}, ${cnv(color.g)}, ${cnv(color.b)})`;
-    }
-
-    setSkyboxMip(mip: number) {
-        this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = (mip !== 0);
-        this.app.scene.skyboxMip = mip - 1;
-        this.renderNextFrame();
-    }
-
+    //#region Life Cycle
     update(deltaTime: number) {
         // update the orbit camera
         this.orbitCamera.update(deltaTime);
@@ -1210,77 +942,17 @@ class Viewer {
             this.renderNextFrame();
         }
     }
-
     renderNextFrame() {
         this.app.renderNextFrame = true;
         if (this.multiframe) {
             this.multiframe.moved();
         }
     }
-
     clearCta() {
         document.querySelector('#panel-left').classList.add('no-cta');
         document.querySelector('#application-canvas').classList.add('no-cta');
         document.querySelector('.load-button-panel').classList.add('hide');
     }
-
-    // add a loaded asset to the scene
-    // asset is a container asset with renders and/or animations
-    private addToScene(err: string, asset: pc.Asset) {
-        //this.observer.set('spinner', false);
-        
-        if (err) {
-            this.observer.set('error', err);
-            return;
-        }
-
-        const resource = asset.resource;
-        const meshesLoaded = resource.renders && resource.renders.length > 0;
-        const prevEntity : pc.Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
-
-        let entity: pc.Entity;
-
-        // create entity
-        if (!meshesLoaded && prevEntity && prevEntity.findComponent("render")) {
-            entity = prevEntity;
-        } else {
-            entity = asset.resource.instantiateRenderEntity();
-            this.entities.push(entity);
-            this.entityAssets.push({ entity: entity, asset: asset });
-            this.sceneRoot.addChild(entity);
-        }
-
-        // store the loaded asset
-        this.assets.push(asset);
-
-        // update
-        this.updateSceneInfo();
-
-        // construct a list of meshInstances so we can quickly access them when configuring wireframe rendering etc.
-        this.updateMeshInstanceList();
-
-        // if no meshes are loaded then enable skeleton rendering so user can see something
-        if (this.meshInstances.length === 0) {
-            this.observer.set('show.skeleton', true);
-        }
-
-        // dirty everything
-        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
-
-        // we can't refocus the camera here because the scene hierarchy only gets updated
-        // during render. we must instead set a flag, wait for a render to take place and
-        // then focus the camera.
-        this.firstFrame = true;
-        this.renderNextFrame();
-    }
-
-    private calcSceneBounds() {
-        return this.meshInstances.length ?
-            Viewer.calcMeshBoundingBox(this.meshInstances) :
-            (this.sceneRoot.children.length ?
-                Viewer.calcHierBoundingBox(this.sceneRoot) : defaultSceneBounds);
-    }
-
     // generate and render debug elements on prerender
     private onPrerender() {
         // don't update on the first frame
@@ -1397,7 +1069,6 @@ class Viewer {
 
         // this.app.drawWireSphere(this.cursorWorld, 0.01);
     }
-
     private onPostrender() {
         // resolve the (possibly multisampled) render target
         if (this.camera.camera.renderTarget._samples > 1) {
@@ -1408,7 +1079,6 @@ class Viewer {
         // are needed.
         this.multiframeBusy = this.multiframe.update();
     }
-
     private onFrameend() {
         if (this.firstFrame) {
             this.firstFrame = false;
@@ -1427,12 +1097,333 @@ class Viewer {
             this.app.renderNextFrame = true;
         }
     }
+    //#endregion
+    
+    //#region calcBoundingBox
+    // collects all mesh instances from entity hierarchy
+    private collectMeshInstances(entity: pc.Entity) {
+        const meshInstances: Array<pc.MeshInstance> = [];
+        if (entity) {
+            const components = entity.findComponents("render");
+            for (let i = 0; i < components.length; i++) {
+                const render = components[i] as pc.RenderComponent;
+                if (render.meshInstances) {
+                    for (let m = 0; m < render.meshInstances.length; m++) {
+                        const meshInstance = render.meshInstances[m];
+                        meshInstances.push(meshInstance);
+                    }
+                }
+            }
+        }
+        return meshInstances;
+    }
+    private updateMeshInstanceList() {
 
+        this.meshInstances = [];
+        for (let e = 0; e < this.entities.length; e++) {
+            const meshInstances = this.collectMeshInstances(this.entities[e]);
+            this.meshInstances = this.meshInstances.concat(meshInstances);
+        }
+    }
+    // calculate the bounding box of the given mesh
+    private static calcMeshBoundingBox(meshInstances: Array<pc.MeshInstance>) {
+        const bbox = new pc.BoundingBox();
+        for (let i = 0; i < meshInstances.length; ++i) {
+            if (i === 0) {
+                bbox.copy(meshInstances[i].aabb);
+            } else {
+                bbox.add(meshInstances[i].aabb);
+            }
+        }
+        return bbox;
+    }
+    // calculate the bounding box of the graph-node hierarchy
+    private static calcHierBoundingBox(rootNode: pc.Entity) {
+        const position = rootNode.getPosition();
+        let min_x = position.x;
+        let min_y = position.y;
+        let min_z = position.z;
+        let max_x = position.x;
+        let max_y = position.y;
+        let max_z = position.z;
+
+        const recurse = (node: pc.GraphNode) => {
+            const p = node.getPosition();
+            if (p.x < min_x) min_x = p.x; else if (p.x > max_x) max_x = p.x;
+            if (p.y < min_y) min_y = p.y; else if (p.y > max_y) max_y = p.y;
+            if (p.z < min_z) min_z = p.z; else if (p.z > max_z) max_z = p.z;
+            for (let i = 0; i < node.children.length; ++i) {
+                recurse(node.children[i]);
+            }
+        };
+        recurse(rootNode);
+
+        const result = new pc.BoundingBox();
+        result.setMinMax(new pc.Vec3(min_x, min_y, min_z), new pc.Vec3(max_x, max_y, max_z));
+        return result;
+    }
+    // calculate the intersection of the two bounding boxes
+    private static calcBoundingBoxIntersection(bbox1: pc.BoundingBox, bbox2: pc.BoundingBox) {
+        // bounds don't intersect
+        if (!bbox1.intersects(bbox2)) {
+            return null;
+        }
+        const min1 = bbox1.getMin();
+        const max1 = bbox1.getMax();
+        const min2 = bbox2.getMin();
+        const max2 = bbox2.getMax();
+        const result = new pc.BoundingBox();
+        result.setMinMax(new pc.Vec3(Math.max(min1.x, min2.x), Math.max(min1.y, min2.y), Math.max(min1.z, min2.z)),
+                         new pc.Vec3(Math.min(max1.x, max2.x), Math.min(max1.y, max2.y), Math.min(max1.z, max2.z)));
+        return result;
+    }
+    private calcSceneBounds() {
+        return this.meshInstances.length ?
+            Viewer.calcMeshBoundingBox(this.meshInstances) :
+            (this.sceneRoot.children.length ?
+                Viewer.calcHierBoundingBox(this.sceneRoot) : defaultSceneBounds);
+    }
+    //#endregion
+
+    //#region Set Property
     // to change samples at runtime execute in the debugger 'viewer.setSamples(5, false, 2, 0)'
     setSamples(numSamples: number, jitter = false, size = 1, sigma = 0) {
         this.multiframe.setSamples(numSamples, jitter, size, sigma);
         this.renderNextFrame();
     }
+    setSelectedVariant(variant: string) {
+        if (variant) {
+            this.entityAssets.forEach((entityAsset) => {
+                if (entityAsset.asset.resource.getMaterialVariants().indexOf(variant) !== -1) {
+                    entityAsset.asset.resource.applyMaterialVariant(entityAsset.entity, variant);
+                }
+            });
+            this.renderNextFrame();
+        }
+    }
+    setStats(show: boolean) {
+        this.miniStats.enabled = show;
+        this.renderNextFrame();
+    }
+    setShowWireframe(show: boolean) {
+        this.showWireframe = show;
+        this.dirtyWireframe = true;
+        this.renderNextFrame();
+    }
+    setShowBounds(show: boolean) {
+        this.showBounds = show;
+        this.dirtyBounds = true;
+        this.renderNextFrame();
+    }
+    setShowSkeleton(show: boolean) {
+        this.showSkeleton = show;
+        this.dirtySkeleton = true;
+        this.renderNextFrame();
+    }
+    setShowAxes(show: boolean) {
+        this.showAxes = show;
+        this.dirtySkeleton = true;
+        this.renderNextFrame();
+    }
+    setShowGrid(show: boolean) {
+        this.showGrid = show;
+        this.dirtyGrid = true;
+        this.renderNextFrame();
+    }
+    setNormalLength(length: number) {
+        this.normalLength = length;
+        this.dirtyNormals = true;
+        this.renderNextFrame();
+    }
+    setFov(fov: number) {
+        this.camera.camera.fov = fov;
+        this.renderNextFrame();
+    }
+    setEnvRotation(factor: number) {
+        // update skybox
+        const rot = new pc.Quat();
+        rot.setFromEulerAngles(0, factor, 0);
+        this.app.scene.skyboxRotation = rot;
+
+        this.renderNextFrame();
+    }
+    setMainLightingIntencity(factor: number) {
+        this.light.light.intensity = factor;
+        this.renderNextFrame();
+    }
+    setMainLightingColor_r(value: number) {
+        var color = this.light.light.color;
+        color.r = value / 255;
+        this.light.light.color = color;
+        this.renderNextFrame();
+    }
+    setMainLightingColor_g(value: number) {
+        var color = this.light.light.color;
+        color.g = value / 255;
+        this.light.light.color = color;
+        this.renderNextFrame();
+    }
+    setMainLightingColor_b(value: number) {
+        var color = this.light.light.color;
+        color.b = value / 255;
+        this.light.light.color = color;
+        this.renderNextFrame();
+    }
+    setMainLightingRotation_x(factor: number) {
+        var angle = this.light.getLocalEulerAngles();
+        angle.x = factor;
+        this.light.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setMainLightingRotation_y(factor: number) {
+        var angle = this.light.getLocalEulerAngles();
+        angle.y = factor;
+        this.light.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setMainLightingRotation_z(factor: number) {
+        var angle = this.light.getLocalEulerAngles();
+        angle.z = factor;
+        this.light.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setMainLightShadow(enable: boolean) {
+        this.light.light.castShadows = enable;
+        this.renderNextFrame();
+    }
+    setMainLightShadowIntencity(value: number) {
+        this.light.light.shadowIntensity = value;
+        this.renderNextFrame();
+    }
+    setMainLightShadowResulution(value: number) {
+        this.light.light.shadowResolution = value;
+        this.renderNextFrame();
+    }
+    setSubLightingIntencity(factor: number) {
+        this.sublight.light.intensity = factor;
+        this.renderNextFrame();
+    }
+    setSubLightingColor_r(value: number) {
+        var color = this.sublight.light.color;
+        color.r = value / 255;
+        this.sublight.light.color = color;
+        this.renderNextFrame();
+    }
+    setSubLightingColor_g(value: number) {
+        var color = this.sublight.light.color;
+        color.g = value / 255;
+        this.sublight.light.color = color;
+        this.renderNextFrame();
+    }
+    setSubLightingColor_b(value: number) {
+        var color = this.sublight.light.color;
+        color.b = value / 255;
+        this.sublight.light.color = color;
+        this.renderNextFrame();
+    }
+    setSubLightingRotation_x(factor: number) {
+        var angle = this.sublight.getLocalEulerAngles();
+        angle.x = factor;
+        this.sublight.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setSubLightingRotation_y(factor: number) {
+        var angle = this.sublight.getLocalEulerAngles();
+        angle.y = factor;
+        this.sublight.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setSubLightingRotation_z(factor: number) {
+        var angle = this.sublight.getLocalEulerAngles();
+        angle.z = factor;
+        this.sublight.setLocalEulerAngles(angle);
+        this.renderNextFrame();
+    }
+    setEnvExposure(factor: number) {
+        this.app.scene.skyboxIntensity = Math.pow(2, factor);
+        this.renderNextFrame();
+    }
+    setTonemapping(tonemapping: string) {
+        const mapping: Record<string, number> = {
+            Linear: pc.TONEMAP_LINEAR,
+            Filmic: pc.TONEMAP_FILMIC,
+            Hejl: pc.TONEMAP_HEJL,
+            ACES: pc.TONEMAP_ACES
+        };
+
+        this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : pc.TONEMAP_ACES;
+        this.renderNextFrame();
+    }
+    setBackgroundColor(color: { r: number, g: number, b: number }) {
+        const cnv = (value: number) => Math.max(0, Math.min(255, Math.floor(value * 255)));
+        document.getElementById('canvas-wrapper').style.backgroundColor = `rgb(${cnv(color.r)}, ${cnv(color.g)}, ${cnv(color.b)})`;
+    }
+    setSkyboxMip(mip: number) {
+        this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = (mip !== 0);
+        this.app.scene.skyboxMip = mip - 1;
+        this.renderNextFrame();
+    }
+    //#endregion
+
+    //#region Util
+
+    // extract query params. taken from https://stackoverflow.com/a/21152762
+    handleUrlParams() {
+        const urlParams: any = {};
+        if (location.search) {
+            location.search.substring(1).split("&").forEach((item) => {
+                const s = item.split("="),
+                    k = s[0],
+                    v = s[1] && decodeURIComponent(s[1]);
+                (urlParams[k] = urlParams[k] || []).push(v);
+            });
+        }
+
+        // handle load url param
+        const loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
+        if (loadUrls.length > 0) {
+            this.loadFiles(
+                loadUrls.map((url: string) => {
+                    return { url, filename: url };
+                })
+            );
+        }
+        if (loadUrls.length === 1) {
+            this.observer.set('glbUrl', loadUrls[0]);
+        }
+
+        // set camera position
+        if (urlParams.hasOwnProperty('cameraPosition')) {
+            const pos = urlParams.cameraPosition[0].split(',').map(Number);
+            if (pos.length === 3) {
+                this.cameraPosition = new pc.Vec3(pos);
+            }
+        }
+    }
+
+    downloadPngScreenshot() {
+        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+
+        // save the backbuffer
+        const w = device.width;
+        const h = device.height;
+        const data = new Uint8Array(w * h * 4);
+        device.setRenderTarget(null);
+        device.gl.readPixels(0, 0, w, h, device.gl.RGBA, device.gl.UNSIGNED_BYTE, data);
+        this.pngExporter.export('model-viewer.png', new Uint32Array(data.buffer), w, h);
+    }
+
+    startXr() {
+        if (this.app.xr.isAvailable(pc.XRTYPE_AR)) {
+            this.camera.camera.startXr(pc.XRTYPE_AR, pc.XRSPACE_LOCALFLOOR, {
+                callback: (err) => {
+                    console.log(err);
+                }
+            });
+        }
+    }
+
+    //#endregion
 }
 
 export default Viewer;
