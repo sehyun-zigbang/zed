@@ -7,7 +7,6 @@ import { Container, Spinner, Label, Button, TextInput, InfoBox } from '@playcanv
 import { getAssetPath } from '../helpers';
 import { File, SetProperty, ObserverData } from '../types';
 import LeftPanel from './left-panel';
-import PopupPanel from './popup-panel';
 
 const LoadControls = (props: { setProperty: SetProperty }) => {
 
@@ -115,7 +114,6 @@ class App extends React.Component<{ observer: Observer }> {
             <div id='canvas-wrapper'>
                 <canvas id="application-canvas" ref={this.canvasRef} />
                 <LoadControls setProperty={this._setStateProperty}/>
-                <PopupPanel observerData={this.state} setProperty={this._setStateProperty} />
                 <ErrorBox observerData={this.state} />
                 <Spinner id="spinner" size={30} hidden={true} />
             </div>

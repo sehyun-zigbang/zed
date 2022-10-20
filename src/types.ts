@@ -1,9 +1,3 @@
-export interface MorphTarget {
-    name: string,
-    targetIndex: number,
-    weight?: number
-}
-
 export interface File {
     url: string,
     filename?: string

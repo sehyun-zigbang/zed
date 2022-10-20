@@ -2,8 +2,6 @@ import * as pc from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
 // @ts-ignore: No extras declarations
 import * as pcx from 'playcanvas/build/playcanvas-extras.js';
-// @ts-ignore: library file import
-import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 
 import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 
@@ -13,7 +11,6 @@ import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
-import { PngExporter } from './png-exporter.js';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -23,7 +20,6 @@ const defaultSceneBounds = new pc.BoundingBox(new pc.Vec3(0, 1, 0), new pc.Vec3(
 class Viewer {
     app: pc.Application;
     dropHandler: DropHandler;
-    pngExporter: PngExporter = null;
     prevCameraMat: pc.Mat4;
     camera: pc.Entity;
     orbitCamera: OrbitCamera;
@@ -137,12 +133,6 @@ class Viewer {
         const multisampleSupported = app.graphicsDevice.maxSamples > 1;
         observer.set('render.multisampleSupported', multisampleSupported);
         observer.set('render.multisample', multisampleSupported && observer.get('render.multisample'));
-
-        // register vox support
-        VoxParser.registerVoxParser(app);
-
-        // create the exporter
-        this.pngExporter = new PngExporter();
 
         // create drop handler
         this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
@@ -1397,28 +1387,6 @@ class Viewer {
             if (pos.length === 3) {
                 this.cameraPosition = new pc.Vec3(pos);
             }
-        }
-    }
-
-    downloadPngScreenshot() {
-        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
-
-        // save the backbuffer
-        const w = device.width;
-        const h = device.height;
-        const data = new Uint8Array(w * h * 4);
-        device.setRenderTarget(null);
-        device.gl.readPixels(0, 0, w, h, device.gl.RGBA, device.gl.UNSIGNED_BYTE, data);
-        this.pngExporter.export('model-viewer.png', new Uint32Array(data.buffer), w, h);
-    }
-
-    startXr() {
-        if (this.app.xr.isAvailable(pc.XRTYPE_AR)) {
-            this.camera.camera.startXr(pc.XRTYPE_AR, pc.XRSPACE_LOCALFLOOR, {
-                callback: (err) => {
-                    console.log(err);
-                }
-            });
         }
     }
 
