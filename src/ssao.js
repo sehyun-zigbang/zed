@@ -1,4 +1,4 @@
-import * as pc from 'playcanvas';
+
 // The implementation is based on the code in Filament Engine: https://github.com/google/filament
 // specifically, shaders here: https://github.com/google/filament/tree/24b88219fa6148b8004f230b377f163e6f184d65/filament/src/materials/ssao
 
@@ -12,7 +12,8 @@ import * as pc from 'playcanvas';
  * @param {GraphicsDevice} graphicsDevice - The graphics device of the application.
  * @param {any} ssaoScript - The script using the effect.
  */
- function SSAOEffect(graphicsDevice, ssaoScript) {
+ export function SSAOEffect(graphicsDevice, ssaoScript) {
+    pc = window.pc;
     pc.PostEffect.call(this, graphicsDevice);
 
     this.ssaoScript = ssaoScript;
@@ -502,66 +503,3 @@ Object.assign(SSAOEffect.prototype, {
         pc.drawFullscreenQuad(device, outputTarget, this.vertexBuffer, this.outputShader, rect);
     }
 });
-
-// ----------------- SCRIPT DEFINITION ------------------ //
-var SSAO = pc.createScript('ssao');
-
-SSAO.attributes.add('radius', {
-    type: 'number',
-    default: 4,
-    min: 0,
-    max: 20,
-    title: 'Radius'
-});
-
-SSAO.attributes.add('brightness', {
-    type: 'number',
-    default: 0,
-    min: 0,
-    max: 1,
-    title: 'Brightness'
-});
-
-SSAO.attributes.add('samples', {
-    type: 'number',
-    default: 16,
-    min: 1,
-    max: 256,
-    title: 'Samples'
-});
-
-SSAO.attributes.add('downscale', {
-    type: 'number',
-    default: 1,
-    min: 1,
-    max: 4,
-    title: "Downscale"
-});
-
-SSAO.prototype.initialize = function () {
-    this.effect = new SSAOEffect(this.app.graphicsDevice, this);
-    this.effect.radius = this.radius;
-    this.effect.brightness = this.brightness;
-    this.effect.samples = this.samples;
-    this.effect.downscale = this.downscale;
-
-    this.on('attr', function (name, value) {
-        this.effect[name] = value;
-    }, this);
-
-    var queue = this.entity.camera.postEffects;
-    queue.addEffect(this.effect);
-
-    this.on('state', function (enabled) {
-        if (enabled) {
-            queue.addEffect(this.effect);
-        } else {
-            queue.removeEffect(this.effect);
-        }
-    });
-
-    this.on('destroy', function () {
-        queue.removeEffect(this.effect);
-        this.effect._destroy();
-    });
-};

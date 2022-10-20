@@ -110,6 +110,12 @@ const observerData: ObserverData = {
         loadTime: null
     },
     scripts:{
+        bloom: {
+            enabled: true,
+            bloomIntensity: 0.8,
+            bloomThreshold: 0.7,
+            blurAmount: 15
+        },
         ssao: {
             enabled: true,
             radius: 5,

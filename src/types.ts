@@ -106,6 +106,12 @@ export interface ObserverData {
         loadTime?: number
     },
     scripts:{
+        bloom:{
+            enabled: boolean,
+            bloomIntensity: number,
+            bloomThreshold: number,
+            blurAmount: number,
+        },
         ssao: {
             enabled: boolean,
             radius: number,

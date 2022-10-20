@@ -12,6 +12,8 @@ import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
 
+import Bloom from './effect/bloom'
+
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
 
@@ -67,6 +69,7 @@ class Viewer {
     cursorWorld = new pc.Vec3();
 
     loadTimestamp?: number = null;
+    bloom : Bloom;
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
@@ -164,6 +167,8 @@ class Viewer {
             clearColor: new pc.Color(0, 0, 0, 0)
         });
         camera.camera.requestSceneColorMap(true);
+        camera.addComponent("script");
+        camera.script.create('bloom', {attributes: observer.get('scripts.bloom')});
 
         this.orbitCamera = new OrbitCamera(camera, 0.25);
         this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
@@ -294,7 +299,7 @@ class Viewer {
             }
         });
 
-        // start the application
+        // // start the application
         app.start();
     }
     // construct the controls interface and initialize controls
@@ -351,6 +356,12 @@ class Viewer {
             'lighting.subLight.rotation_x': this.setSubLightingRotation_x.bind(this),
             'lighting.subLight.rotation_y': this.setSubLightingRotation_y.bind(this),
             'lighting.subLight.rotation_z': this.setSubLightingRotation_z.bind(this),
+
+            // bloom
+            'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
+            'scripts.bloom.bloomIntensity': this.setBloomIntensity.bind(this),
+            'scripts.bloom.bloomThreshold': this.setBloomThreshold.bind(this),
+            'scripts.bloom.blurAmount': this.setBlurAmount.bind(this),
 
             'scene.variant.selected': this.setSelectedVariant.bind(this)
         };
@@ -1350,6 +1361,26 @@ class Viewer {
     setSkyboxMip(mip: number) {
         this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = (mip !== 0);
         this.app.scene.skyboxMip = mip - 1;
+        this.renderNextFrame();
+    }
+    setBloomEnabled(value: boolean) {
+        // var attr = Bloom.bind.
+        // if (attr) attr.default = value;
+        this.renderNextFrame();
+    }
+    setBloomIntensity(value: number) {
+        // var attr = Bloom.attributes.get('bloomIntensity');
+        // if (attr) attr.default = value;
+        this.renderNextFrame();
+    }
+    setBloomThreshold(value: number) {
+        // var attr = Bloom.attributes.get('bloomThreshold');
+        // if (attr) attr.default = value;
+        this.renderNextFrame();
+    }
+    setBlurAmount(value: number) {
+        // var attr = Bloom.attributes.get('blurAmount');
+        // if (attr) attr.default = value;
         this.renderNextFrame();
     }
     //#endregion

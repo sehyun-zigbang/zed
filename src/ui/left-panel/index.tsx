@@ -157,6 +157,24 @@ class SSAOPanel extends React.Component <{ scripts: ObserverData['scripts'], set
         );
     }
 }
+class BloomPanel extends React.Component <{ scripts: ObserverData['scripts'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ scripts: ObserverData['scripts']; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.scripts) !== JSON.stringify(this.props.scripts);
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <Panel headerText='Bloom' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
+                <Toggle label='Enable' value={props.scripts.bloom.enabled} setProperty={(value: boolean) => props.setProperty('scripts.bloom.enabled', value)} />
+                <Slider label='Intensity' precision={2} min={0} max={1} value={props.scripts.bloom.bloomIntensity} setProperty={(value: number) => props.setProperty('scripts.bloom.bloomIntensity', value)} />
+                <Slider label='Threshold' precision={2} min={0} max={1} value={props.scripts.bloom.bloomThreshold} setProperty={(value: number) => props.setProperty('scripts.bloom.bloomThreshold', value)} />
+                <Slider label='Amount' precision={2} min={1} max={30} value={props.scripts.bloom.blurAmount} setProperty={(value: number) => props.setProperty('scripts.bloom.blurAmount', value)} />
+                
+            </Panel>
+        );
+    }
+}
 class ShowPanel extends React.Component <{ showData: ObserverData['show'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ showData: ObserverData['show']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.showData) !== JSON.stringify(this.props.showData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
@@ -219,6 +237,7 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                     <EnvironmentPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <LightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <SubLightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
+                    <BloomPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <SSAOPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <ShowPanel setProperty={this.props.setProperty} showData={this.props.observerData.show} uiData={this.props.observerData.ui} />    
                 </div>
