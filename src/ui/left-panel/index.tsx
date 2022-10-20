@@ -38,7 +38,7 @@ class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], se
         const scene = this.props.sceneData;
         const variantListOptions: Array<{ v:string, t:string }> = JSON.parse(scene.variants.list).map((variant: string) => ({ v: variant, t: variant }));
         return (
-            <Panel headerText='SCENE' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+            <Panel headerText='SCENE' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
                 <Detail label='Load time' value={scene.loadTime} />
                 <Detail label='Meshes' value={scene.meshCount} />
                 <Detail label='Verts' value={scene.vertexCount} />
@@ -62,7 +62,7 @@ class CameraPanel extends React.Component <{ observerData: ObserverData, setProp
     render() {
         const props = this.props;
         return (
-            <Panel headerText='CAMERA' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+            <Panel headerText='CAMERA' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
                 <Slider label='Fov' precision={0} min={35} max={150} value={props.observerData.show.fov} setProperty={(value: number) => props.setProperty('show.fov', value)} />
                 <Select label='Tonemap' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} value={props.observerData.lighting.tonemapping} setProperty={(value: number) => props.setProperty('lighting.tonemapping', value)} />
                 <Select label='Pixel Scale' value={props.observerData.render.pixelScale} type='number' options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))} setProperty={(value: number) => props.setProperty('render.pixelScale', value)} />
@@ -87,7 +87,7 @@ class EnvironmentPanel extends React.Component <{ lightingData: ObserverData['li
     render() {
         const props = this.props;
         return (
-            <Panel headerText='ENVIRONMENT' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+            <Panel headerText='ENVIRONMENT' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
                     <Select label='Environment' type='string' options={JSON.parse(props.lightingData.env.options)} value={props.lightingData.env.value} setProperty={(value: string) => props.setProperty('lighting.env.value', value)} />
                     <Select label='Skybox Level' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} value={props.lightingData.env.skyboxMip} setProperty={(value: number) => props.setProperty('lighting.env.skyboxMip', value)} />
                     <Slider label='Exposure' precision={2} min={-6} max={6} value={props.lightingData.env.exposure} setProperty={(value: number) => props.setProperty('lighting.env.exposure', value)} />
@@ -104,7 +104,7 @@ class LightingPanel extends React.Component <{ lightingData: ObserverData['light
     render() {
         const props = this.props;
         return (
-            <Panel headerText='LIGHTING' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+            <Panel headerText='LIGHTING' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
                     <Slider label='Intencity' precision={2} min={0} max={6} value={props.lightingData.mainLight.intencity} setProperty={(value: number) => props.setProperty('lighting.mainLight.intencity', value)} />
                     <Slider label='Color_R' precision={0} min={0} max={255} value={props.lightingData.mainLight.color_r} setProperty={(value: number) => props.setProperty('lighting.mainLight.color_r', value)} />
                     <Slider label='Color_G' precision={0} min={0} max={255} value={props.lightingData.mainLight.color_g} setProperty={(value: number) => props.setProperty('lighting.mainLight.color_g', value)} />
@@ -127,7 +127,7 @@ class SubLightingPanel extends React.Component <{ lightingData: ObserverData['li
     render() {
         const props = this.props;
         return (
-            <Panel headerText='SUB LIGHTING' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+            <Panel headerText='SUB LIGHTING' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
                     <Slider label='Intencity' precision={2} min={0} max={6} value={props.lightingData.subLight.intencity} setProperty={(value: number) => props.setProperty('lighting.subLight.intencity', value)} />
                     <Slider label='Color_R' precision={0} min={0} max={255} value={props.lightingData.subLight.color_r} setProperty={(value: number) => props.setProperty('lighting.subLight.color_r', value)} />
                     <Slider label='Color_G' precision={0} min={0} max={255} value={props.lightingData.subLight.color_g} setProperty={(value: number) => props.setProperty('lighting.subLight.color_g', value)} />
@@ -139,7 +139,24 @@ class SubLightingPanel extends React.Component <{ lightingData: ObserverData['li
         );
     }
 }
+class SSAOPanel extends React.Component <{ scripts: ObserverData['scripts'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ scripts: ObserverData['scripts']; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.scripts) !== JSON.stringify(this.props.scripts);
+    }
 
+    render() {
+        const props = this.props;
+        return (
+            <Panel headerText='SSAO' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
+                <Toggle label='Enable' value={props.scripts.ssao.enabled} setProperty={(value: boolean) => props.setProperty('scripts.ssao.enabled', value)} />
+                <Slider label='Radius' precision={2} min={0} max={10} value={props.scripts.ssao.radius} setProperty={(value: number) => props.setProperty('scripts.ssao.radius', value)} />
+                <Slider label='Samples' precision={2} min={0} max={32} value={props.scripts.ssao.samples} setProperty={(value: number) => props.setProperty('scripts.ssao.samples', value)} />
+                <Slider label='Brightness' precision={2} min={0} max={1} value={props.scripts.ssao.brightness} setProperty={(value: number) => props.setProperty('scripts.ssao.brightness', value)} />
+                <Select label='Downscale' value={props.scripts.ssao.downscale} type='number' options={[{ v: 1, t: 'None' }, { v: 2, t: '50%' }, { v: '4', t: '25%' }]} setProperty={(value: number) => props.setProperty('scripts.ssao.downscale', value)} />
+            </Panel>
+        );
+    }
+}
 class ShowPanel extends React.Component <{ showData: ObserverData['show'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ showData: ObserverData['show']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.showData) !== JSON.stringify(this.props.showData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
@@ -148,7 +165,7 @@ class ShowPanel extends React.Component <{ showData: ObserverData['show'], uiDat
     render() {
         const props = this.props;
         return (
-            <Panel headerText='DEBUG' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+            <Panel headerText='DEBUG' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
                     <Toggle label='Grid' value={props.showData.grid} setProperty={(value: boolean) => props.setProperty('show.grid', value)}/>
                     <Toggle label='Wireframe' value={props.showData.wireframe} setProperty={(value: boolean) => props.setProperty('show.wireframe', value)} />
                     <Toggle label='Axes' value={props.showData.axes} setProperty={(value: boolean) => props.setProperty('show.axes', value)} />
@@ -202,6 +219,7 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                     <EnvironmentPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <LightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <SubLightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
+                    <SSAOPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <ShowPanel setProperty={this.props.setProperty} showData={this.props.observerData.show} uiData={this.props.observerData.ui} />    
                 </div>
             </Container>

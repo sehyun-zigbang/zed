@@ -105,6 +105,15 @@ export interface ObserverData {
         },
         loadTime?: number
     },
+    scripts:{
+        ssao: {
+            enabled: boolean,
+            radius: number,
+            samples: number,
+            brightness: number,
+            downscale: number
+        }
+    },
     spinner: boolean,
     error?: string,
     xrSupported: boolean,

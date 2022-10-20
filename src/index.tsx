@@ -109,6 +109,15 @@ const observerData: ObserverData = {
         },
         loadTime: null
     },
+    scripts:{
+        ssao: {
+            enabled: true,
+            radius: 5,
+            samples: 16,
+            brightness: 0,
+            downscale: 1
+        }
+    },
     spinner: false,
     error: null,
     xrSupported: false,
