@@ -27,8 +27,8 @@ const observerData: ObserverData = {
     },
     render: {
         multisampleSupported: true,
-        multisample: true,
-        hq: true,
+        multisample: false,
+        hq: false,
         pixelScale: 1
     },
     show: {
@@ -37,7 +37,7 @@ const observerData: ObserverData = {
         bounds: false,
         skeleton: false,
         axes: false,
-        grid: true,
+        grid: false,
         normals: 0,
         fov: 45
     },
@@ -61,8 +61,8 @@ const observerData: ObserverData = {
             rotation_y: 30,
             rotation_z: 0,
             shadow: true,
-            shadowResolution: 4096,
-            shadowIntencity: 1.5
+            shadowResolution: 2048,
+            shadowIntencity: 1
         },
         subLight: {
             intencity: 0.45,
@@ -112,7 +112,7 @@ const observerData: ObserverData = {
     scripts:{
         bloom: {
             enabled: true,
-            bloomIntensity: 0.8,
+            bloomIntensity: 0.5,
             bloomThreshold: 0.7,
             blurAmount: 15
         },

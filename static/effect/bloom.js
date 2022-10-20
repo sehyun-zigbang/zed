@@ -1,4 +1,4 @@
-import * as pc from "playcanvas";
+
 
 // --------------- POST EFFECT DEFINITION --------------- //
 var SAMPLE_COUNT = 15;
@@ -241,10 +241,13 @@ class BloomEffect extends pc.PostEffect {
     }
 }
 
-export default class Bloom extends pc.ScriptType {
 
-    initialize() {
-        this.effect = new BloomEffect(this.app.graphicsDevice);
+// ----------------- SCRIPT DEFINITION ------------------ //
+var Bloom = pc.createScript('bloom');
+
+// initialize code called once per entity
+Bloom.prototype.initialize = function () {
+    this.effect = new BloomEffect(this.app.graphicsDevice);
 
         this.effect.bloomThreshold = this.bloomThreshold;
         this.effect.blurAmount = this.blurAmount;
@@ -269,11 +272,7 @@ export default class Bloom extends pc.ScriptType {
         this.on('destroy', function () {
             queue.removeEffect(this.effect);
         });
-    }
-}
-// ----------------- SCRIPT DEFINITION ------------------ //
-
-pc.registerScript(Bloom,'bloom');
+};
 
 Bloom.attributes.add('bloomIntensity', {
     type: 'number',

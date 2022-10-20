@@ -165,12 +165,11 @@ class BloomPanel extends React.Component <{ scripts: ObserverData['scripts'], se
     render() {
         const props = this.props;
         return (
-            <Panel headerText='Bloom' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
+            <Panel headerText='BLOOM' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} >
                 <Toggle label='Enable' value={props.scripts.bloom.enabled} setProperty={(value: boolean) => props.setProperty('scripts.bloom.enabled', value)} />
                 <Slider label='Intensity' precision={2} min={0} max={1} value={props.scripts.bloom.bloomIntensity} setProperty={(value: number) => props.setProperty('scripts.bloom.bloomIntensity', value)} />
                 <Slider label='Threshold' precision={2} min={0} max={1} value={props.scripts.bloom.bloomThreshold} setProperty={(value: number) => props.setProperty('scripts.bloom.bloomThreshold', value)} />
                 <Slider label='Amount' precision={2} min={1} max={30} value={props.scripts.bloom.blurAmount} setProperty={(value: number) => props.setProperty('scripts.bloom.blurAmount', value)} />
-                
             </Panel>
         );
     }

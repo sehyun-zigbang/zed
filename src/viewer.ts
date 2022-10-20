@@ -12,8 +12,6 @@ import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
 
-import Bloom from './effect/bloom'
-
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
 
@@ -69,7 +67,7 @@ class Viewer {
     cursorWorld = new pc.Vec3();
 
     loadTimestamp?: number = null;
-    bloom : Bloom;
+    bloom : pc.ScriptType | null;
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
@@ -81,233 +79,222 @@ class Viewer {
                 alpha: true,
                 // the following aren't needed since we're rendering to an offscreen render target
                 // and would only result in extra memory usage.
-                antialias: false,
-                depth: false,
+                antialias: true,
+                depth: true,
                 preserveDrawingBuffer: true
             }
         });
         this.app = app;
 
-        // set xr supported
-        observer.set('xrSupported', false);
-        observer.set('xrActive', false);
-
-        // xr is supported
-        if (this.app.xr.supported) {
-            app.xr.on("available:" + pc.XRTYPE_AR, (available) => {
-                observer.set('xrSupported', !!available);
-            });
-
-            app.xr.on("start", () => {
-                console.log("Immersive AR session has started");
-                observer.set('xrActive', true);
-
-                this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = false;
-            });
-
-            app.xr.on("end", () => {
-                console.log("Immersive AR session has ended");
-                observer.set('xrActive', false);
-                this.setSkyboxMip(this.observer.get('lighting.env.skyboxMip'));
-            });
-        }
-
-        // monkeypatch the mouse and touch input devices to ignore touch events
-        // when they don't originate from the canvas.
-        const origMouseHandler = app.mouse._moveHandler;
-        app.mouse.detach();
-        app.mouse._moveHandler = (event: MouseEvent) => {
-            if (event.target === canvas) {
-                origMouseHandler(event);
-            }
+        const assets = {
+            'bloom': new pc.Asset('bloom', 'script', { url: '/static/effect/bloom.js' })
         };
-        app.mouse.attach(canvas);
+    
+        const assetListLoader = new pc.AssetListLoader(Object.values(assets), app.assets);
+        assetListLoader.load(() => {
+            // monkeypatch the mouse and touch input devices to ignore touch events
+            // when they don't originate from the canvas.
+            const origMouseHandler = app.mouse._moveHandler;
+            app.mouse.detach();
+            app.mouse._moveHandler = (event: MouseEvent) => {
+                if (event.target === canvas) {
+                    origMouseHandler(event);
+                }
+            };
+            app.mouse.attach(canvas);
 
-        const origTouchHandler = app.touch._moveHandler;
-        app.touch.detach();
-        app.touch._moveHandler = (event: MouseEvent) => {
-            if (event.target === canvas) {
-                origTouchHandler(event);
-            }
-        };
-        app.touch.attach(canvas);
+            const origTouchHandler = app.touch._moveHandler;
+            app.touch.detach();
+            app.touch._moveHandler = (event: MouseEvent) => {
+                if (event.target === canvas) {
+                    origTouchHandler(event);
+                }
+            };
+            app.touch.attach(canvas);
 
-        // @ts-ignore
-        const multisampleSupported = app.graphicsDevice.maxSamples > 1;
-        observer.set('render.multisampleSupported', multisampleSupported);
-        observer.set('render.multisample', multisampleSupported && observer.get('render.multisample'));
+            // @ts-ignore
+            const multisampleSupported = app.graphicsDevice.maxSamples > 1;
+            observer.set('render.multisampleSupported', multisampleSupported);
+            observer.set('render.multisample', multisampleSupported && observer.get('render.multisample'));
 
-        // create drop handler
-        this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
-            this.loadFiles(files, resetScene);
-            if (resetScene) {
-                this.observer.set('glbUrl', '');
-            }
-        });
+            // create drop handler
+            this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
+                this.loadFiles(files, resetScene);
+                if (resetScene) {
+                    this.observer.set('glbUrl', '');
+                }
+            });
 
-        // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
-        const canvasSize = this.getCanvasSize();
-        app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
-        app.setCanvasResolution(pc.RESOLUTION_AUTO);
-        window.addEventListener("resize", () => {
+            // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
+            const canvasSize = this.getCanvasSize();
+            app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
+            app.setCanvasResolution(pc.RESOLUTION_AUTO);
+            window.addEventListener("resize", () => {
+                this.resizeCanvas();
+            });
+
+            // Depth layer is where the framebuffer is copied to a texture to be used in the following layers.
+            // Move the depth layer to take place after World and Skydome layers, to capture both of them.
+            const depthLayer = app.scene.layers.getLayerById(pc.LAYERID_DEPTH);
+            app.scene.layers.remove(depthLayer);
+            app.scene.layers.insertOpaque(depthLayer, 2);
+
+            // create the orbit camera
+            const camera = new pc.Entity("Camera");
+            camera.addComponent("camera", {
+                fov: 45,
+                frustumCulling: true,
+                clearColor: new pc.Color(0, 0, 0, 0)
+            });
+            camera.camera.requestSceneColorMap(true);
+            camera.addComponent("script");
+            Object.keys(observer.get('scripts')).forEach((key) => {
+                camera.script.create(key, {
+                    attributes: observer.get(`scripts.${key}`)
+                });
+            });
+            
+            this.orbitCamera = new OrbitCamera(camera, 0.25);
+            this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
+            this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
+
+            this.orbitCamera.focalPoint.snapto(new pc.Vec3(0, 1, 0));
+
+            app.root.addChild(camera);
+
+            // 라이트 수정 가능
+            // create the light
+            const light = new pc.Entity();
+            var lightColor = new pc.Color(1, 1, 1);
+            var intensity = 1;
+            var rotation = new pc.Vec3(45, 30, 0);
+            light.addComponent("light", {
+                type: "directional",
+                color: lightColor,
+                castShadows: true,
+                intensity: intensity,
+                shadowBias: 0.2,
+                shadowDistance: 5,
+                normalOffsetBias: 0.05,
+                shadowResolution: 2048
+            });
+            light.setLocalEulerAngles(rotation);
+            app.root.addChild(light);
+
+            const sublight = new pc.Entity();
+            sublight.addComponent("light", {
+                type: "directional",
+                color: lightColor,
+                castShadows: false,
+                intensity: intensity
+            });
+            sublight.setLocalEulerAngles(rotation);
+            app.root.addChild(sublight);
+
+            // disable autorender
+            app.autoRender = false;
+            this.prevCameraMat = new pc.Mat4();
+            app.on('update', this.update, this);
+            app.on('prerender', this.onPrerender, this);
+            app.on('postrender', this.onPostrender, this);
+            app.on('frameend', this.onFrameend, this);
+
+            // create the scene and debug root nodes
+            const sceneRoot = new pc.Entity("sceneRoot", app);
+            app.root.addChild(sceneRoot);
+
+            const debugRoot = new pc.Entity("debugRoot", app);
+            app.root.addChild(debugRoot);
+
+            // store app things
+            this.camera = camera;
+            this.cameraFocusBBox = null;
+            this.cameraPosition = null;
+            this.light = light;
+            this.sublight = sublight;
+            this.sceneRoot = sceneRoot;
+            this.debugRoot = debugRoot;
+            this.entities = [];
+            this.entityAssets = [];
+            this.assets = [];
+            this.meshInstances = [];
+
+            this.firstFrame = false;
+            this.skyboxLoaded = false;
+
+            this.showWireframe = observer.get('show.wireframe');
+            this.showBounds = observer.get('show.bounds');
+            this.showSkeleton = observer.get('show.skeleton');
+            this.showAxes = observer.get('show.axes');
+            this.normalLength = observer.get('show.normals');
+            this.setTonemapping(observer.get('lighting.tonemapping'));
+            this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
+
+            this.dirtyWireframe = false;
+            this.dirtyBounds = false;
+            this.dirtySkeleton = false;
+            this.dirtyGrid = false;
+            this.dirtyNormals = false;
+
+            this.sceneBounds = null;
+
+            this.debugBounds = new DebugLines(app, camera);
+            this.debugSkeleton = new DebugLines(app, camera);
+            this.debugGrid = new DebugLines(app, camera, false);
+            this.debugNormals = new DebugLines(app, camera, false);
+
+            // construct ministats, default off
+            this.miniStats = new pcx.MiniStats(app);
+            this.miniStats.enabled = observer.get('show.stats');
+            this.observer = observer;
+
+            const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+            
+            // multiframe
+            //this.multiframe = new Multiframe(device, this.camera.camera, 5);
+
+            // initialize control events
+            this.bindControlEvents();
+
             this.resizeCanvas();
+
+            // construct the depth reader
+            this.readDepth = new ReadDepth(device);
+            this.cursorWorld = new pc.Vec3();
+
+            // double click handler
+            // canvas.addEventListener('dblclick', (event) => {
+            //     const camera = this.camera.camera;
+            //     const x = event.offsetX / canvas.clientWidth;
+            //     const y = 1.0 - event.offsetY / canvas.clientHeight;
+
+            //     // read depth
+            //     const depth = this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
+
+            //     if (depth < 1) {
+            //         const pos = new pc.Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
+            //         camera.projectionMatrix.clone().invert().transformVec4(pos, pos);                   // homogeneous view space
+            //         pos.mulScalar(1.0 / pos.w);                                                         // perform perspective divide
+            //         this.cursorWorld.set(pos.x, pos.y, pos.z);
+            //         this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
+
+            //         // move camera towards focal point
+            //         this.orbitCamera.focalPoint.goto(this.cursorWorld);
+            //     }
+            // });
+
+            // // start the application
+            app.start();
+
+           
         });
-
-        // Depth layer is where the framebuffer is copied to a texture to be used in the following layers.
-        // Move the depth layer to take place after World and Skydome layers, to capture both of them.
-        const depthLayer = app.scene.layers.getLayerById(pc.LAYERID_DEPTH);
-        app.scene.layers.remove(depthLayer);
-        app.scene.layers.insertOpaque(depthLayer, 2);
-
-        // create the orbit camera
-        const camera = new pc.Entity("Camera");
-        camera.addComponent("camera", {
-            fov: 45,
-            frustumCulling: true,
-            clearColor: new pc.Color(0, 0, 0, 0)
-        });
-        camera.camera.requestSceneColorMap(true);
-        camera.addComponent("script");
-        camera.script.create('bloom', {attributes: observer.get('scripts.bloom')});
-
-        this.orbitCamera = new OrbitCamera(camera, 0.25);
-        this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
-        this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
-
-        this.orbitCamera.focalPoint.snapto(new pc.Vec3(0, 1, 0));
-
-        app.root.addChild(camera);
-
-        // 라이트 수정 가능
-        // create the light
-        const light = new pc.Entity();
-        var lightColor = new pc.Color(1, 1, 1);
-        var intensity = 1;
-        var rotation = new pc.Vec3(45, 30, 0);
-        light.addComponent("light", {
-            type: "directional",
-            color: lightColor,
-            castShadows: true,
-            intensity: intensity,
-            shadowBias: 0.2,
-            shadowDistance: 5,
-            normalOffsetBias: 0.05,
-            shadowResolution: 2048
-        });
-        light.setLocalEulerAngles(rotation);
-        app.root.addChild(light);
-
-        const sublight = new pc.Entity();
-        sublight.addComponent("light", {
-            type: "directional",
-            color: lightColor,
-            castShadows: false,
-            intensity: intensity
-        });
-        sublight.setLocalEulerAngles(rotation);
-        app.root.addChild(sublight);
-
-        // disable autorender
-        app.autoRender = false;
-        this.prevCameraMat = new pc.Mat4();
-        app.on('update', this.update, this);
-        app.on('prerender', this.onPrerender, this);
-        app.on('postrender', this.onPostrender, this);
-        app.on('frameend', this.onFrameend, this);
-
-        // create the scene and debug root nodes
-        const sceneRoot = new pc.Entity("sceneRoot", app);
-        app.root.addChild(sceneRoot);
-
-        const debugRoot = new pc.Entity("debugRoot", app);
-        app.root.addChild(debugRoot);
-
-        // store app things
-        this.camera = camera;
-        this.cameraFocusBBox = null;
-        this.cameraPosition = null;
-        this.light = light;
-        this.sublight = sublight;
-        this.sceneRoot = sceneRoot;
-        this.debugRoot = debugRoot;
-        this.entities = [];
-        this.entityAssets = [];
-        this.assets = [];
-        this.meshInstances = [];
-
-        this.firstFrame = false;
-        this.skyboxLoaded = false;
-
-        this.showWireframe = observer.get('show.wireframe');
-        this.showBounds = observer.get('show.bounds');
-        this.showSkeleton = observer.get('show.skeleton');
-        this.showAxes = observer.get('show.axes');
-        this.normalLength = observer.get('show.normals');
-        this.setTonemapping(observer.get('lighting.tonemapping'));
-        this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
-
-        this.dirtyWireframe = false;
-        this.dirtyBounds = false;
-        this.dirtySkeleton = false;
-        this.dirtyGrid = false;
-        this.dirtyNormals = false;
-
-        this.sceneBounds = null;
-
-        this.debugBounds = new DebugLines(app, camera);
-        this.debugSkeleton = new DebugLines(app, camera);
-        this.debugGrid = new DebugLines(app, camera, false);
-        this.debugNormals = new DebugLines(app, camera, false);
-
-        // construct ministats, default off
-        this.miniStats = new pcx.MiniStats(app);
-        this.miniStats.enabled = observer.get('show.stats');
-        this.observer = observer;
-
-        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
-
-        // multiframe
-        this.multiframe = new Multiframe(device, this.camera.camera, 5);
-
-        // initialize control events
-        this.bindControlEvents();
-
-        this.resizeCanvas();
-
-        // construct the depth reader
-        this.readDepth = new ReadDepth(device);
-        this.cursorWorld = new pc.Vec3();
-
-        // double click handler
-        canvas.addEventListener('dblclick', (event) => {
-            const camera = this.camera.camera;
-            const x = event.offsetX / canvas.clientWidth;
-            const y = 1.0 - event.offsetY / canvas.clientHeight;
-
-            // read depth
-            const depth = this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
-
-            if (depth < 1) {
-                const pos = new pc.Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
-                camera.projectionMatrix.clone().invert().transformVec4(pos, pos);                   // homogeneous view space
-                pos.mulScalar(1.0 / pos.w);                                                         // perform perspective divide
-                this.cursorWorld.set(pos.x, pos.y, pos.z);
-                this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
-
-                // move camera towards focal point
-                this.orbitCamera.focalPoint.goto(this.cursorWorld);
-            }
-        });
-
-        // // start the application
-        app.start();
     }
     // construct the controls interface and initialize controls
     private bindControlEvents() {
         const controlEvents:any = {
             'render.multisample': this.resizeCanvas.bind(this),
             'render.hq': (enabled: boolean) => {
-                this.multiframe.enabled = enabled;
+                //this.multiframe.enabled = enabled;
                 this.renderNextFrame();
             },
             'render.pixelScale': this.resizeCanvas.bind(this),
@@ -357,7 +344,7 @@ class Viewer {
             'lighting.subLight.rotation_y': this.setSubLightingRotation_y.bind(this),
             'lighting.subLight.rotation_z': this.setSubLightingRotation_z.bind(this),
 
-            // bloom
+            // // bloom
             'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
             'scripts.bloom.bloomIntensity': this.setBloomIntensity.bind(this),
             'scripts.bloom.bloomThreshold': this.setBloomThreshold.bind(this),
@@ -371,7 +358,12 @@ class Viewer {
             this.observer.on(`${e}:set`, controlEvents[e]);
             this.observer.set(e, this.observer.get(e), false, false, true);
         });
-
+        // this.observer.on('*:set', (path: string, value: any) => {
+        //     const pathArray = path.split('.');
+        //     if (pathArray[0] === 'scripts') {
+        //         camera.script[pathArray[1]][pathArray[2]] = value;
+        //     }
+        // });
         this.observer.on('canvasResized', () => {
             this.resizeCanvas();
         });
@@ -558,41 +550,45 @@ class Viewer {
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
         this.renderNextFrame();
 
-        const createTexture = (width: number, height: number, format: number) => {
-            return new pc.Texture(device, {
-                width: width,
-                height: height,
-                format: format,
-                mipmaps: false,
-                minFilter: pc.FILTER_NEAREST,
-                magFilter: pc.FILTER_NEAREST,
-                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE
-            });
-        };
+        // const createTexture = (width: number, height: number, format: number) => {
+        //     return new pc.Texture(device, {
+        //         width: width,
+        //         height: height,
+        //         format: format,
+        //         mipmaps: false,
+        //         minFilter: pc.FILTER_NEAREST,
+        //         magFilter: pc.FILTER_NEAREST,
+        //         addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+        //         addressV: pc.ADDRESS_CLAMP_TO_EDGE
+        //     });
+        // };
 
         // out with the old
-        const old = this.camera.camera.renderTarget;
-        if (old) {
-            old.colorBuffer.destroy();
-            old.depthBuffer.destroy();
-            old.destroy();
-        }
+        // const old = this.camera.camera.renderTarget;
+        // if (old) {
+        //     old.colorBuffer?.destroy();
+        //     old.depthBuffer?.destroy();
+        //     old.destroy();
+        // }
 
         // in with the new
-        const pixelScale = observer.get('render.pixelScale');
-        const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
-        const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
-        const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
-        const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
-        const renderTarget = new pc.RenderTarget({
-            colorBuffer: colorBuffer,
-            depthBuffer: depthBuffer,
-            flipY: false,
-            samples: observer.get('render.multisample') ? device.maxSamples : 1,
-            autoResolve: false
-        });
-        this.camera.camera.renderTarget = renderTarget;
+        // const pixelScale = observer.get('render.pixelScale');
+        // const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
+        // const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
+        // const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
+        // const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
+        // const renderTarget = new pc.RenderTarget({
+        //     colorBuffer: colorBuffer,
+        //     depthBuffer: depthBuffer,
+        //     flipY: false,
+        //     samples: observer.get('render.multisample') ? device.maxSamples : 1,
+        //     autoResolve: false
+        // });
+        // this.camera.camera.renderTarget = renderTarget;
+        // if(this.bloom)
+        // {
+
+        // }
     }
 
     //#endregion
@@ -944,9 +940,9 @@ class Viewer {
     }
     renderNextFrame() {
         this.app.renderNextFrame = true;
-        if (this.multiframe) {
-            this.multiframe.moved();
-        }
+        // if (this.multiframe) {
+        //     this.multiframe.moved();
+        // }
     }
     clearCta() {
         document.querySelector('#panel-left').classList.add('no-cta');
@@ -1066,18 +1062,17 @@ class Viewer {
                 this.debugGrid.update();
             }
         }
-
-        // this.app.drawWireSphere(this.cursorWorld, 0.01);
     }
     private onPostrender() {
+        
         // resolve the (possibly multisampled) render target
-        if (this.camera.camera.renderTarget._samples > 1) {
-            this.camera.camera.renderTarget.resolve();
-        }
+        // if (this.camera.camera.renderTarget._samples > 1) {
+        //     this.camera.camera.renderTarget.resolve();
+        // }
 
         // perform mulitiframe update. returned flag indicates whether more frames
         // are needed.
-        this.multiframeBusy = this.multiframe.update();
+        //this.multiframeBusy = this.multiframe.update();
     }
     private onFrameend() {
         if (this.firstFrame) {
@@ -1093,9 +1088,9 @@ class Viewer {
             this.observer.set('spinner', false);
         }
 
-        if (this.multiframeBusy) {
-            this.app.renderNextFrame = true;
-        }
+        // if (this.multiframeBusy) {
+        //     this.app.renderNextFrame = true;
+        // }
     }
     //#endregion
     
@@ -1188,7 +1183,7 @@ class Viewer {
     //#region Set Property
     // to change samples at runtime execute in the debugger 'viewer.setSamples(5, false, 2, 0)'
     setSamples(numSamples: number, jitter = false, size = 1, sigma = 0) {
-        this.multiframe.setSamples(numSamples, jitter, size, sigma);
+        //this.multiframe.setSamples(numSamples, jitter, size, sigma);
         this.renderNextFrame();
     }
     setSelectedVariant(variant: string) {
@@ -1363,24 +1358,30 @@ class Viewer {
         this.app.scene.skyboxMip = mip - 1;
         this.renderNextFrame();
     }
+
+    updateBloom = false;
     setBloomEnabled(value: boolean) {
-        // var attr = Bloom.bind.
-        // if (attr) attr.default = value;
-        this.renderNextFrame();
+        this.setBloomApply();
     }
     setBloomIntensity(value: number) {
-        // var attr = Bloom.attributes.get('bloomIntensity');
-        // if (attr) attr.default = value;
-        this.renderNextFrame();
+        this.setBloomApply();
     }
     setBloomThreshold(value: number) {
-        // var attr = Bloom.attributes.get('bloomThreshold');
-        // if (attr) attr.default = value;
-        this.renderNextFrame();
+        this.setBloomApply();
     }
     setBlurAmount(value: number) {
-        // var attr = Bloom.attributes.get('blurAmount');
-        // if (attr) attr.default = value;
+        this.setBloomApply();
+    }
+    setBloomApply()
+    {
+        const enabled = this.observer.get('scripts.bloom.enabled');
+        this.camera.script.destroy('bloom');
+        if(enabled)
+        {
+            this.camera.script.create('bloom', {
+                attributes: this.observer.get('scripts.bloom')
+            });
+        }
         this.renderNextFrame();
     }
     //#endregion
