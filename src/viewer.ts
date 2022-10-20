@@ -785,6 +785,7 @@ class Viewer {
             aed.z = distance;
             this.orbitCamera.azimElevDistance.snapto(aed);
         }
+        this.orbitCamera.setBounds(bbox);
         this.orbitCamera.focalPoint.snapto(bbox.center);
         camera.nearClip = distance / 100;
         camera.farClip = distance * 10;
