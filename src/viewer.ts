@@ -137,9 +137,9 @@ class Viewer {
 
             // Depth layer is where the framebuffer is copied to a texture to be used in the following layers.
             // Move the depth layer to take place after World and Skydome layers, to capture both of them.
-            const depthLayer = app.scene.layers.getLayerById(pc.LAYERID_DEPTH);
-            app.scene.layers.remove(depthLayer);
-            app.scene.layers.insertOpaque(depthLayer, 2);
+            // const depthLayer = app.scene.layers.getLayerById(pc.LAYERID_DEPTH);
+            // app.scene.layers.remove(depthLayer);
+            // app.scene.layers.insertOpaque(depthLayer, 2);
 
             // create the orbit camera
             const camera = new pc.Entity("Camera");
@@ -426,7 +426,7 @@ class Viewer {
         });
 
         // hierarchy
-        this.observer.set('scene.nodes', JSON.stringify(graph));
+        //this.observer.set('scene.nodes', JSON.stringify(graph));
 
         // mesh stats
         this.observer.set('scene.meshCount', meshCount);

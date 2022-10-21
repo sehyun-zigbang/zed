@@ -21,11 +21,13 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
         var asset_path = "https://raw.githubusercontent.com/sehyun-zigbang/zigbang-zed-viewer/feature/playcanvas-based/assets";
         
         var model_path = `${asset_path}/glTF/${danjiId}/${roomTypeId}`;
-        var name_glTF = `${danjiId}_${roomTypeId}_${level}.gltf`;
-        var name_bin = `${danjiId}_${roomTypeId}_${level}.bin`;
+        var model_name = `${danjiId}_${roomTypeId}_${level}`;
+        var name_glTF = `${model_name}.gltf`;
+        var name_bin = `${model_name}.bin`;
         var url_glTF = `${model_path}/${name_glTF}`;
         var url_bin = `${model_path}/${name_bin}`;
-        
+        props.setProperty('scene.name', name_glTF);
+
         const viewer = (window as any).viewer;
 
         const loadList: Array<File> = [];

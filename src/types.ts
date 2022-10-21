@@ -103,7 +103,8 @@ export interface ObserverData {
         variants: {
             list: string
         },
-        loadTime?: number
+        loadTime?: number,
+        name?: string
     },
     scripts:{
         bloom:{

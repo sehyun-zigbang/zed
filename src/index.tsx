@@ -107,7 +107,8 @@ const observerData: ObserverData = {
         variants: {
             list: '[]'
         },
-        loadTime: null
+        loadTime: null,
+        name: null
     },
     scripts:{
         bloom: {
