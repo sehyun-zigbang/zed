@@ -7,73 +7,54 @@ import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 
 import { DropHandler } from './drop-handler';
 import { File, HierarchyNode } from './types';
-import { DebugLines } from './debug';
-import { Multiframe } from './multiframe';
-import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
 
 import { getAssetPath } from './helpers';
 
 // model filename extensions
-const modelExtensions = ['.gltf', '.glb', '.vox'];
+const modelExtensions = ['.gltf', '.glb' ];
 
 const defaultSceneBounds = new pc.BoundingBox(new pc.Vec3(0, 1, 0), new pc.Vec3(1, 1, 1));
 
 class Viewer {
+
     app: pc.Application;
-    dropHandler: DropHandler;
-    prevCameraMat: pc.Mat4;
-    camera: pc.Entity;
-    orbitCamera: OrbitCamera;
-    orbitCameraInputMouse: OrbitCameraInputMouse;
-    orbitCameraInputTouch: OrbitCameraInputTouch;
-    cameraFocusBBox: pc.BoundingBox | null;
-    cameraPosition: pc.Vec3 | null;
-    light: pc.Entity;
-    sublight: pc.Entity;
-    sceneRoot: pc.Entity;
-    debugRoot: pc.Entity;
-    entities: Array<pc.Entity>;
-    entityAssets: Array<{entity: pc.Entity, asset: pc.Asset }>;
-    assets: Array<pc.Asset>;
-    meshInstances: Array<pc.MeshInstance>;
-   
-    firstFrame: boolean;
-    skyboxLoaded: boolean;
-    
-    showWireframe: boolean;
-    showBounds: boolean;
-    showSkeleton: boolean;
-    showAxes: boolean;
-    showGrid: boolean;
-    normalLength: number;
-    skyboxMip: number;
-    dirtyWireframe: boolean;
-    dirtyBounds: boolean;
-    dirtySkeleton: boolean;
-    dirtyGrid: boolean;
-    dirtyNormals: boolean;
-    sceneBounds: pc.BoundingBox;
-    debugBounds: DebugLines;
-    debugSkeleton: DebugLines;
-    debugGrid: DebugLines;
-    debugNormals: DebugLines;
-    miniStats: any;
     observer: Observer;
 
-    selectedNode: pc.GraphNode | null;
-
-    multiframe: Multiframe | null;
-    multiframeBusy = false;
-    readDepth: ReadDepth = null;
-    cursorWorld = new pc.Vec3();
-
+    firstFrame : boolean;
     loadTimestamp?: number = null;
-    bloom : pc.ScriptType | null;
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
+        this.canvas = canvas;
+        this.observer = observer;
+
+        this.init_app();
+        const app = this.app;
+        
+        this.init_camera();
+        this.init_light();
+        this.init_skyBox();
+        this.init_dropHandler();
+        this.init_object();
+        this.init_stats();
+
+        this.observer.on('canvasResized', () => {
+            this.resizeCanvas();
+        });
+        this.resizeCanvas();
+
+        app.start();
+    }
+
+    //-----------------------------------
+
+    //#region App
+    init_app()
+    {
+        const canvas = this.canvas;
+
         // create the application
-        const app = new pc.Application(canvas, {
+        this.app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
             touch: new pc.TouchDevice(canvas),
             graphicsDeviceOptions: {
@@ -83,11 +64,45 @@ class Viewer {
                 // and would only result in extra memory usage.
                 antialias: true,
                 depth: true,
-                preserveDrawingBuffer: true
+                //preserveDrawingBuffer: true
             }
         });
-        this.app = app;
+    }
+    //#endregion
 
+    //-----------------------------------
+
+    //#region Camera 
+    camera: pc.Entity;
+    orbitCamera: OrbitCamera;
+    orbitCameraInputMouse: OrbitCameraInputMouse;
+    orbitCameraInputTouch: OrbitCameraInputTouch;
+    cameraFocusBBox: pc.BoundingBox | null;
+    cameraPosition: pc.Vec3 | null;
+    init_camera()
+    {
+        const app = this.app;
+        const observer = this.observer;
+
+        // Create Camera Entity
+        const camera = this.camera = new pc.Entity("Camera");
+        camera.addComponent("camera", {
+            fov: 45,
+            frustumCulling: true,
+            clearColor: new pc.Color(0, 0, 0, 0)
+        });
+        //camera.camera.requestSceneColorMap(true);
+
+        // Create OrbitCamera Component
+        this.orbitCamera = new OrbitCamera(camera, 0.25);
+        this.orbitCameraInputMouse = new OrbitCameraInputMouse(app, this.orbitCamera);
+        this.orbitCameraInputTouch = new OrbitCameraInputTouch(app, this.orbitCamera);
+        this.orbitCamera.focalPoint.snapto(new pc.Vec3(0, 1, 0));
+
+        // Add 
+        this.app.root.addChild(camera);
+
+        // Create Post-Process Component
         const assets = {
             'bloom': new pc.Asset('bloom', 'script', { url: getAssetPath('effect/bloom.js') }),
             'brightnesscontrast': new pc.Asset('brightnesscontrast', 'script', { url: getAssetPath('effect/brightnesscontrast.js') }),
@@ -98,237 +113,190 @@ class Viewer {
     
         const assetListLoader = new pc.AssetListLoader(Object.values(assets), app.assets);
         assetListLoader.load(() => {
-            // monkeypatch the mouse and touch input devices to ignore touch events
-            // when they don't originate from the canvas.
-            const origMouseHandler = app.mouse._moveHandler;
-            app.mouse.detach();
-            app.mouse._moveHandler = (event: MouseEvent) => {
-                if (event.target === canvas) {
-                    origMouseHandler(event);
-                }
-            };
-            app.mouse.attach(canvas);
 
-            const origTouchHandler = app.touch._moveHandler;
-            app.touch.detach();
-            app.touch._moveHandler = (event: MouseEvent) => {
-                if (event.target === canvas) {
-                    origTouchHandler(event);
-                }
-            };
-            app.touch.attach(canvas);
-
-            // @ts-ignore
-            const multisampleSupported = app.graphicsDevice.maxSamples > 1;
-            observer.set('render.multisampleSupported', multisampleSupported);
-            observer.set('render.multisample', multisampleSupported && observer.get('render.multisample'));
-
-            // create drop handler
-            this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
-                this.loadFiles(files, resetScene);
-                if (resetScene) {
-                    this.observer.set('glbUrl', '');
-                }
-            });
-
-            // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
-            const canvasSize = this.getCanvasSize();
-            app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
-            app.setCanvasResolution(pc.RESOLUTION_AUTO);
-            window.addEventListener("resize", () => {
-                this.resizeCanvas();
-            });
-
-            // Depth layer is where the framebuffer is copied to a texture to be used in the following layers.
-            // Move the depth layer to take place after World and Skydome layers, to capture both of them.
-            // const depthLayer = app.scene.layers.getLayerById(pc.LAYERID_DEPTH);
-            // app.scene.layers.remove(depthLayer);
-            // app.scene.layers.insertOpaque(depthLayer, 2);
-
-            // create the orbit camera
-            const camera = new pc.Entity("Camera");
-            camera.addComponent("camera", {
-                fov: 45,
-                frustumCulling: true,
-                clearColor: new pc.Color(0, 0, 0, 0)
-            });
-            camera.camera.requestSceneColorMap(true);
             camera.addComponent("script");
             Object.keys(observer.get('scripts')).forEach((key) => {
                 camera.script.create(key, {
                     attributes: observer.get(`scripts.${key}`)
                 });
             });
-            
-            this.orbitCamera = new OrbitCamera(camera, 0.25);
-            this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
-            this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
 
-            this.orbitCamera.focalPoint.snapto(new pc.Vec3(0, 1, 0));
-
-            app.root.addChild(camera);
-
-            // 라이트 수정 가능
-            // create the light
-            const light = new pc.Entity();
-            var lightColor = new pc.Color(1, 1, 1);
-            var intensity = 1;
-            var rotation = new pc.Vec3(45, 30, 0);
-            light.addComponent("light", {
-                type: "directional",
-                color: lightColor,
-                castShadows: true,
-                intensity: intensity,
-                shadowBias: 0.2,
-                shadowDistance: 5,
-                normalOffsetBias: 0.05,
-                shadowResolution: 2048
+            const controlEvents:any = {
+                // bloom
+                'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
+                'scripts.bloom.bloomIntensity': this.setBloomIntensity.bind(this),
+                'scripts.bloom.bloomThreshold': this.setBloomThreshold.bind(this),
+                'scripts.bloom.blurAmount': this.setBlurAmount.bind(this),
+    
+                // color adjust
+                'scripts.brightnesscontrast.enabled': this.setBrightnessContrastEnabled.bind(this),
+                'scripts.brightnesscontrast.brightness': this.setBrightness.bind(this),
+                'scripts.brightnesscontrast.contrast': this.setContrast.bind(this),
+                'scripts.huesaturation.enabled': this.setHueSaturationEnabled.bind(this),
+                'scripts.huesaturation.hue': this.setHue.bind(this),
+                'scripts.huesaturation.saturation': this.setSaturation.bind(this),
+                
+                // dof
+                'scripts.bokeh.enabled': this.setBokehEnabled.bind(this),
+                'scripts.bokeh.maxBlur': this.setBokehMaxBlur.bind(this),
+                'scripts.bokeh.aperture': this.setBokehAperture.bind(this),
+                'scripts.bokeh.focus': this.setBokehFocus.bind(this),
+    
+                // vignette
+                'scripts.vignette.enabled': this.setVignetteEnabled.bind(this),
+                'scripts.vignette.offset': this.setVignetteOffset.bind(this),
+                'scripts.vignette.darkness': this.setVignetteDarkness.bind(this),
+            };
+    
+            // register control events
+            Object.keys(controlEvents).forEach((e) => {
+                observer.on(`${e}:set`, controlEvents[e]);
+                observer.set(e, observer.get(e), false, false, true);
             });
-            light.setLocalEulerAngles(rotation);
-            app.root.addChild(light);
+        });
 
-            const sublight = new pc.Entity();
-            sublight.addComponent("light", {
-                type: "directional",
-                color: lightColor,
-                castShadows: false,
-                intensity: intensity
-            });
-            sublight.setLocalEulerAngles(rotation);
-            app.root.addChild(sublight);
+        // store app things
+        this.cameraFocusBBox = null;
+        this.cameraPosition = null;
 
-            // disable autorender
-            app.autoRender = false;
-            this.prevCameraMat = new pc.Mat4();
-            app.on('update', this.update, this);
-            app.on('prerender', this.onPrerender, this);
-            app.on('postrender', this.onPostrender, this);
-            app.on('frameend', this.onFrameend, this);
-
-            // create the scene and debug root nodes
-            const sceneRoot = new pc.Entity("sceneRoot", app);
-            app.root.addChild(sceneRoot);
-
-            const debugRoot = new pc.Entity("debugRoot", app);
-            app.root.addChild(debugRoot);
-
-            // store app things
-            this.camera = camera;
-            this.cameraFocusBBox = null;
-            this.cameraPosition = null;
-            this.light = light;
-            this.sublight = sublight;
-            this.sceneRoot = sceneRoot;
-            this.debugRoot = debugRoot;
-            this.entities = [];
-            this.entityAssets = [];
-            this.assets = [];
-            this.meshInstances = [];
-
-            this.firstFrame = false;
-            this.skyboxLoaded = false;
-
-            this.showWireframe = observer.get('show.wireframe');
-            this.showBounds = observer.get('show.bounds');
-            this.showSkeleton = observer.get('show.skeleton');
-            this.showAxes = observer.get('show.axes');
-            this.normalLength = observer.get('show.normals');
-            this.setTonemapping(observer.get('lighting.tonemapping'));
-            this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
-
-            this.dirtyWireframe = false;
-            this.dirtyBounds = false;
-            this.dirtySkeleton = false;
-            this.dirtyGrid = false;
-            this.dirtyNormals = false;
-
-            this.sceneBounds = null;
-
-            this.debugBounds = new DebugLines(app, camera);
-            this.debugSkeleton = new DebugLines(app, camera);
-            this.debugGrid = new DebugLines(app, camera, false);
-            this.debugNormals = new DebugLines(app, camera, false);
-
-            // construct ministats, default off
-            this.miniStats = new pcx.MiniStats(app);
-            this.miniStats.enabled = observer.get('show.stats');
-            this.observer = observer;
-
-            const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+        const controlEvents:any = {
             
-            // multiframe
-            //this.multiframe = new Multiframe(device, this.camera.camera, 5);
+            'show.fov': this.setFov.bind(this),
+        };
 
-            // initialize control events
-            this.bindControlEvents();
-
-            this.resizeCanvas();
-
-            // construct the depth reader
-            this.readDepth = new ReadDepth(device);
-            this.cursorWorld = new pc.Vec3();
-
-            // double click handler
-            // canvas.addEventListener('dblclick', (event) => {
-            //     const camera = this.camera.camera;
-            //     const x = event.offsetX / canvas.clientWidth;
-            //     const y = 1.0 - event.offsetY / canvas.clientHeight;
-
-            //     // read depth
-            //     const depth = this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
-
-            //     if (depth < 1) {
-            //         const pos = new pc.Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
-            //         camera.projectionMatrix.clone().invert().transformVec4(pos, pos);                   // homogeneous view space
-            //         pos.mulScalar(1.0 / pos.w);                                                         // perform perspective divide
-            //         this.cursorWorld.set(pos.x, pos.y, pos.z);
-            //         this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
-
-            //         // move camera towards focal point
-            //         this.orbitCamera.focalPoint.goto(this.cursorWorld);
-            //     }
-            // });
-
-            // // start the application
-            app.start();
-
-           
+        // register control events
+        Object.keys(controlEvents).forEach((e) => {
+            observer.on(`${e}:set`, controlEvents[e]);
+            observer.set(e, this.observer.get(e), false, false, true);
         });
     }
-    // construct the controls interface and initialize controls
-    private bindControlEvents() {
-        const controlEvents:any = {
-            'render.multisample': this.resizeCanvas.bind(this),
-            'render.hq': (enabled: boolean) => {
-                //this.multiframe.enabled = enabled;
-                this.renderNextFrame();
-            },
-            'render.pixelScale': this.resizeCanvas.bind(this),
-            'show.stats': this.setStats.bind(this),
-            'show.wireframe': this.setShowWireframe.bind(this),
-            'show.bounds': this.setShowBounds.bind(this),
-            'show.skeleton': this.setShowSkeleton.bind(this),
-            'show.axes': this.setShowAxes.bind(this),
-            'show.grid': this.setShowGrid.bind(this),
-            'show.normals': this.setNormalLength.bind(this),
-            'show.fov': this.setFov.bind(this),
+    focusCamera() {
+        const camera = this.camera.camera;
+        const bbox = this.calcSceneBounds();
 
-            // tone
-            'lighting.tonemapping': this.setTonemapping.bind(this),
-
-            // env
-            'lighting.env.value': (value: string) => {
-                if (value && value !== 'None') {
-                    this.loadFiles([{ url: value, filename: value }]);
-                } else {
-                    this.clearSkybox();
+        if (this.cameraFocusBBox) {
+            const intersection = Viewer.calcBoundingBoxIntersection(this.cameraFocusBBox, bbox);
+            if (intersection) {
+                const len1 = bbox.halfExtents.length();
+                const len2 = this.cameraFocusBBox.halfExtents.length();
+                const len3 = intersection.halfExtents.length();
+                if ((Math.abs(len3 - len1) / len1 < 0.1) &&
+                    (Math.abs(len3 - len2) / len2 < 0.1)) {
+                    return;
                 }
-            },
-            'lighting.env.skyboxMip': this.setSkyboxMip.bind(this),
-            'lighting.env.exposure': this.setEnvExposure.bind(this),
-            'lighting.env.backgroundColor': this.setBackgroundColor.bind(this),
-            'lighting.env.rotation': this.setEnvRotation.bind(this),
-            
+            }
+        }
+
+        // calculate scene bounding box
+        const radius = bbox.halfExtents.length();
+        const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
+
+        if (this.cameraPosition) {
+            const vec = bbox.center.clone().sub(this.cameraPosition);
+            this.orbitCamera.vecToAzimElevDistance(vec, vec);
+            this.orbitCamera.azimElevDistance.snapto(vec);
+            this.cameraPosition = null;
+        } else {
+            const aed = this.orbitCamera.azimElevDistance.target.clone();
+            aed.x = 45;
+            aed.y = -45;
+            aed.z = distance;
+            this.orbitCamera.azimElevDistance.snapto(aed);
+        }
+        this.orbitCamera.setBounds(bbox);
+        this.orbitCamera.focalPoint.snapto(bbox.center);
+        camera.nearClip = distance / 100;
+        camera.farClip = distance * 10;
+
+        const light = this.light;
+        light.light.shadowDistance = distance * 2;
+
+        this.cameraFocusBBox = bbox;
+    }
+
+    calcSceneBounds() {
+        return this.meshInstances.length ?
+            this.calcMeshBoundingBox(this.meshInstances) :
+            (this.sceneRoot.children.length ?
+                this.calcHierBoundingBox(this.sceneRoot) : defaultSceneBounds);
+    }
+    // calculate the bounding box of the given mesh
+    calcMeshBoundingBox(meshInstances: Array<pc.MeshInstance>) {
+        const bbox = new pc.BoundingBox();
+        for (let i = 0; i < meshInstances.length; ++i) {
+            if (i === 0) {
+                bbox.copy(meshInstances[i].aabb);
+            } else {
+                bbox.add(meshInstances[i].aabb);
+            }
+        }
+        return bbox;
+    }
+    // calculate the bounding box of the graph-node hierarchy
+    calcHierBoundingBox(rootNode: pc.Entity) {
+        const position = rootNode.getPosition();
+        let min_x = position.x;
+        let min_y = position.y;
+        let min_z = position.z;
+        let max_x = position.x;
+        let max_y = position.y;
+        let max_z = position.z;
+
+        const recurse = (node: pc.GraphNode) => {
+            const p = node.getPosition();
+            if (p.x < min_x) min_x = p.x; else if (p.x > max_x) max_x = p.x;
+            if (p.y < min_y) min_y = p.y; else if (p.y > max_y) max_y = p.y;
+            if (p.z < min_z) min_z = p.z; else if (p.z > max_z) max_z = p.z;
+            for (let i = 0; i < node.children.length; ++i) {
+                recurse(node.children[i]);
+            }
+        };
+        recurse(rootNode);
+
+        const result = new pc.BoundingBox();
+        result.setMinMax(new pc.Vec3(min_x, min_y, min_z), new pc.Vec3(max_x, max_y, max_z));
+        return result;
+    }
+    //#endregion
+
+    //-----------------------------------
+    
+    //#region Light
+    light: pc.Entity;
+    sublight: pc.Entity;
+    init_light()
+    {
+        const app = this.app;
+
+        // create the light
+        const light = this.light = new pc.Entity();
+        var lightColor = new pc.Color(1, 1, 1);
+        var intensity = 1;
+        var rotation = new pc.Vec3(45, 30, 0);
+        light.addComponent("light", {
+            type: "directional",
+            color: lightColor,
+            castShadows: true,
+            intensity: intensity,
+            shadowBias: 0.2,
+            shadowDistance: 5,
+            normalOffsetBias: 0.05,
+            shadowResolution: 2048
+        });
+        light.setLocalEulerAngles(rotation);
+        app.root.addChild(light);
+
+        const sublight = this.sublight = new pc.Entity();
+        sublight.addComponent("light", {
+            type: "directional",
+            color: lightColor,
+            castShadows: false,
+            intensity: intensity
+        });
+        sublight.setLocalEulerAngles(rotation);
+        app.root.addChild(sublight);
+
+        const controlEvents:any = {
             // main light
             'lighting.mainLight.intencity': this.setMainLightingIntencity.bind(this),
             'lighting.mainLight.color_r': this.setMainLightingColor_r.bind(this),
@@ -348,34 +316,7 @@ class Viewer {
             'lighting.subLight.color_b': this.setSubLightingColor_b.bind(this),
             'lighting.subLight.rotation_x': this.setSubLightingRotation_x.bind(this),
             'lighting.subLight.rotation_y': this.setSubLightingRotation_y.bind(this),
-            'lighting.subLight.rotation_z': this.setSubLightingRotation_z.bind(this),
-
-            // bloom
-            'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
-            'scripts.bloom.bloomIntensity': this.setBloomIntensity.bind(this),
-            'scripts.bloom.bloomThreshold': this.setBloomThreshold.bind(this),
-            'scripts.bloom.blurAmount': this.setBlurAmount.bind(this),
-
-            // color adjust
-            'scripts.brightnesscontrast.enabled': this.setBrightnessContrastEnabled.bind(this),
-            'scripts.brightnesscontrast.brightness': this.setBrightness.bind(this),
-            'scripts.brightnesscontrast.contrast': this.setContrast.bind(this),
-            'scripts.huesaturation.enabled': this.setHueSaturationEnabled.bind(this),
-            'scripts.huesaturation.hue': this.setHue.bind(this),
-            'scripts.huesaturation.saturation': this.setSaturation.bind(this),
-            
-            // dof
-            'scripts.bokeh.enabled': this.setBokehEnabled.bind(this),
-            'scripts.bokeh.maxBlur': this.setBokehMaxBlur.bind(this),
-            'scripts.bokeh.aperture': this.setBokehAperture.bind(this),
-            'scripts.bokeh.focus': this.setBokehFocus.bind(this),
-
-            // vignette
-            'scripts.vignette.enabled': this.setVignetteEnabled.bind(this),
-            'scripts.vignette.offset': this.setVignetteOffset.bind(this),
-            'scripts.vignette.darkness': this.setVignetteDarkness.bind(this),
-
-            'scene.variant.selected': this.setSelectedVariant.bind(this)
+            'lighting.subLight.rotation_z': this.setSubLightingRotation_z.bind(this)
         };
 
         // register control events
@@ -383,18 +324,217 @@ class Viewer {
             this.observer.on(`${e}:set`, controlEvents[e]);
             this.observer.set(e, this.observer.get(e), false, false, true);
         });
-        // this.observer.on('*:set', (path: string, value: any) => {
-        //     const pathArray = path.split('.');
-        //     if (pathArray[0] === 'scripts') {
-        //         camera.script[pathArray[1]][pathArray[2]] = value;
-        //     }
-        // });
-        this.observer.on('canvasResized', () => {
+    }
+    //#endregion
+
+    //-----------------------------------
+
+    //#region SkyBox
+    skyboxLoaded: boolean;
+    skyboxMip: number;
+    init_skyBox()
+    {
+        const observer = this.observer;
+
+        this.skyboxLoaded = false;
+        this.setTonemapping(observer.get('lighting.tonemapping'));
+        this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
+
+        const controlEvents:any = {
+            
+            // tone
+            'lighting.tonemapping': this.setTonemapping.bind(this),
+
+            // env
+            'lighting.env.value': (value: string) => {
+                if (value && value !== 'None') {
+                    this.loadFiles([{ url: value, filename: value }]);
+                } else {
+                    this.clearSkybox();
+                }
+            },
+            'lighting.env.skyboxMip': this.setSkyboxMip.bind(this),
+            'lighting.env.exposure': this.setEnvExposure.bind(this),
+            'lighting.env.backgroundColor': this.setBackgroundColor.bind(this),
+            'lighting.env.rotation': this.setEnvRotation.bind(this),
+        };
+
+        // register control events
+        Object.keys(controlEvents).forEach((e) => {
+            observer.on(`${e}:set`, controlEvents[e]);
+            observer.set(e, observer.get(e), false, false, true);
+        });
+    }
+    //#endregion
+
+    //-----------------------------------
+    
+    //#region Drop Asset Handler
+    canvas : HTMLCanvasElement
+    dropHandler: DropHandler;
+    init_dropHandler()
+    {
+        const app = this.app;
+        const canvas = this.canvas;
+
+        // monkeypatch the mouse and touch input devices to ignore touch events
+        // when they don't originate from the canvas.
+        const origMouseHandler = app.mouse._moveHandler;
+        app.mouse.detach();
+        app.mouse._moveHandler = (event: MouseEvent) => {
+            if (event.target === canvas) {
+                origMouseHandler(event);
+            }
+        };
+        app.mouse.attach(canvas);
+
+        const origTouchHandler = app.touch._moveHandler;
+        app.touch.detach();
+        app.touch._moveHandler = (event: MouseEvent) => {
+            if (event.target === canvas) {
+                origTouchHandler(event);
+            }
+        };
+        app.touch.attach(canvas);
+
+        // create drop handler
+        this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
+            this.loadFiles(files, resetScene);
+            if (resetScene) {
+                this.observer.set('glbUrl', '');
+            }
+        });
+
+        app.on('update', this.update, this);
+        app.on('frameend', this.onFrameend, this);
+
+        // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
+        const canvasSize = this.getCanvasSize();
+        app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
+        app.setCanvasResolution(pc.RESOLUTION_AUTO);
+        window.addEventListener("resize", () => {
             this.resizeCanvas();
         });
     }
+    //#endregion
 
+    //-----------------------------------
     
+    //#region Objects
+    sceneRoot: pc.Entity;
+    entities: Array<pc.Entity>;
+    entityAssets: Array<{entity: pc.Entity, asset: pc.Asset }>;
+    assets: Array<pc.Asset>;
+    meshInstances: Array<pc.MeshInstance>;
+    sceneBounds: pc.BoundingBox;
+    selectedNode: pc.GraphNode | null;
+    init_object()
+    {
+        const app = this.app;
+        const observer = this.observer;
+
+        // create the scene and debug root nodes
+        const sceneRoot = new pc.Entity("sceneRoot", app);
+        app.root.addChild(sceneRoot);
+        this.sceneRoot = sceneRoot;
+
+        this.entities = [];
+        this.entityAssets = [];
+        this.assets = [];
+        this.meshInstances = [];
+        this.sceneBounds = null;
+
+        const controlEvents:any = {
+            'scene.variant.selected': this.setSelectedVariant.bind(this)
+        };
+
+        // register control events
+        Object.keys(controlEvents).forEach((e) => {
+            observer.on(`${e}:set`, controlEvents[e]);
+            observer.set(e, this.observer.get(e), false, false, true);
+        });
+    }
+
+    // Events
+    setSelectedVariant(variant: string) {
+        if (variant) {
+            this.entityAssets.forEach((entityAsset) => {
+                if (entityAsset.asset.resource.getMaterialVariants().indexOf(variant) !== -1) {
+                    entityAsset.asset.resource.applyMaterialVariant(entityAsset.entity, variant);
+                }
+            });
+        }
+    }
+
+    //#endregion
+
+    //-----------------------------------
+    
+    //#region Stats (profiling)
+    miniStats: any;
+    init_stats()
+    {
+        const app = this.app;
+        const observer = this.observer;
+
+        // construct ministats, default off
+        this.miniStats = new pcx.MiniStats(app);
+        this.miniStats.enabled = observer.get('show.stats');
+
+        const controlEvents:any = {
+            'show.stats': this.setStats.bind(this),
+        };
+
+        // register control events
+        Object.keys(controlEvents).forEach((e) => {
+            observer.on(`${e}:set`, controlEvents[e]);
+            observer.set(e, this.observer.get(e), false, false, true);
+        });
+    }
+    //#endregion
+
+    //-----------------------------------
+
+    //#region canvas
+    getCanvasSize() {
+        return {
+            width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth, // - document.getElementById("panel-right").offsetWidth,
+            height: document.body.clientHeight
+        };
+    }
+    resizeCanvas() {
+        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+        const canvasSize = this.getCanvasSize();
+
+        device.maxPixelRatio = window.devicePixelRatio;
+        this.app.resizeCanvas(canvasSize.width, canvasSize.height);
+    }
+    //#endregion
+   
+    //-----------------------------------
+
+    //#region Life Cycle
+    update(deltaTime: number) {
+        // update the orbit camera
+        this.orbitCamera.update(deltaTime);
+    }
+    onFrameend() {
+        if (this.firstFrame) {
+            this.firstFrame = false;
+            // focus camera after first frame otherwise skinned model bounding
+            // boxes are incorrect
+            this.focusCamera();
+        }
+        else if (this.loadTimestamp !== null) {
+            this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp} ms`);
+            this.loadTimestamp = null;
+            this.observer.set('spinner', false);
+        }
+    }
+    //#endregion
+
+     //-----------------------------------
+
     //#region SceneData
     // reset the viewer, unloading resources
     resetScene() {
@@ -418,9 +558,6 @@ class Viewer {
         this.observer.set('scene.variants.list', '[]');
 
         this.updateSceneInfo();
-
-        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
-        this.renderNextFrame();
     }
     updateSceneInfo() {
         let meshCount = 0;
@@ -501,122 +638,12 @@ class Viewer {
             this.observer.set('show.skeleton', true);
         }
 
-        // dirty everything
-        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
-
         // we can't refocus the camera here because the scene hierarchy only gets updated
         // during render. we must instead set a flag, wait for a render to take place and
         // then focus the camera.
         this.firstFrame = true;
-        this.renderNextFrame();
+        
     }
-    //#endregion
-
-    //#region Camera
-    // move the camera to view the loaded object
-    focusCamera() {
-        const camera = this.camera.camera;
-
-        const bbox = this.calcSceneBounds();
-
-        if (this.cameraFocusBBox) {
-            const intersection = Viewer.calcBoundingBoxIntersection(this.cameraFocusBBox, bbox);
-            if (intersection) {
-                const len1 = bbox.halfExtents.length();
-                const len2 = this.cameraFocusBBox.halfExtents.length();
-                const len3 = intersection.halfExtents.length();
-                if ((Math.abs(len3 - len1) / len1 < 0.1) &&
-                    (Math.abs(len3 - len2) / len2 < 0.1)) {
-                    return;
-                }
-            }
-        }
-
-        // calculate scene bounding box
-        const radius = bbox.halfExtents.length();
-        const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
-
-        if (this.cameraPosition) {
-            const vec = bbox.center.clone().sub(this.cameraPosition);
-            this.orbitCamera.vecToAzimElevDistance(vec, vec);
-            this.orbitCamera.azimElevDistance.snapto(vec);
-            this.cameraPosition = null;
-        } else {
-            const aed = this.orbitCamera.azimElevDistance.target.clone();
-            aed.z = distance;
-            this.orbitCamera.azimElevDistance.snapto(aed);
-        }
-        this.orbitCamera.setBounds(bbox);
-        this.orbitCamera.focalPoint.snapto(bbox.center);
-        camera.nearClip = distance / 100;
-        camera.farClip = distance * 10;
-
-        const light = this.light;
-        light.light.shadowDistance = distance * 2;
-
-        this.cameraFocusBBox = bbox;
-    }
-    //#endregion
-
-    //#region UI
-
-    private getCanvasSize() {
-        return {
-            width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth, // - document.getElementById("panel-right").offsetWidth,
-            height: document.body.clientHeight
-        };
-    }
-    resizeCanvas() {
-        const observer = this.observer;
-
-        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
-        const canvasSize = this.getCanvasSize();
-
-        device.maxPixelRatio = window.devicePixelRatio;
-        this.app.resizeCanvas(canvasSize.width, canvasSize.height);
-        this.renderNextFrame();
-
-        // const createTexture = (width: number, height: number, format: number) => {
-        //     return new pc.Texture(device, {
-        //         width: width,
-        //         height: height,
-        //         format: format,
-        //         mipmaps: false,
-        //         minFilter: pc.FILTER_NEAREST,
-        //         magFilter: pc.FILTER_NEAREST,
-        //         addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-        //         addressV: pc.ADDRESS_CLAMP_TO_EDGE
-        //     });
-        // };
-
-        // out with the old
-        // const old = this.camera.camera.renderTarget;
-        // if (old) {
-        //     old.colorBuffer?.destroy();
-        //     old.depthBuffer?.destroy();
-        //     old.destroy();
-        // }
-
-        // in with the new
-        // const pixelScale = observer.get('render.pixelScale');
-        // const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
-        // const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
-        // const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
-        // const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
-        // const renderTarget = new pc.RenderTarget({
-        //     colorBuffer: colorBuffer,
-        //     depthBuffer: depthBuffer,
-        //     flipY: false,
-        //     samples: observer.get('render.multisample') ? device.maxSamples : 1,
-        //     autoResolve: false
-        // });
-        // this.camera.camera.renderTarget = renderTarget;
-        // if(this.bloom)
-        // {
-
-        // }
-    }
-
     //#endregion
 
     //#region Load Model
@@ -717,7 +744,11 @@ class Viewer {
 
         this.observer.set('spinner', true);
         this.observer.set('error', null);
-        this.clearCta();
+
+        // clearCta
+        document.querySelector('#panel-left').classList.add('no-cta');
+        document.querySelector('#application-canvas').classList.add('no-cta');
+        document.querySelector('.load-button-panel').classList.add('hide');
 
         this.app.assets.add(containerAsset);
         this.app.assets.load(containerAsset);
@@ -783,7 +814,7 @@ class Viewer {
     private clearSkybox() {
         this.app.scene.envAtlas = null;
         this.app.scene.setSkybox(null);
-        this.renderNextFrame();
+        
         this.skyboxLoaded = false;
     }
     // initialize the faces and prefiltered lighting data from the given
@@ -797,7 +828,7 @@ class Viewer {
 
         this.app.scene.envAtlas = envAtlas;
         this.app.scene.skybox = skybox;
-        this.renderNextFrame();
+        
     }
 
     // initialize the faces and prefiltered lighting data from the given
@@ -855,7 +886,7 @@ class Viewer {
 
         // assign the textures to the scene
         app.scene.setSkybox(cubemaps);
-        this.renderNextFrame();
+        
     }
 
     // load the image files into the skybox. this function supports loading a single equirectangular
@@ -934,192 +965,6 @@ class Viewer {
 
     //#endregion
 
-    //#region Life Cycle
-    update(deltaTime: number) {
-        // update the orbit camera
-        this.orbitCamera.update(deltaTime);
-
-        const maxdiff = (a: pc.Mat4, b: pc.Mat4) => {
-            let result = 0;
-            for (let i = 0; i < 16; ++i) {
-                result = Math.max(result, Math.abs(a.data[i] - b.data[i]));
-            }
-            return result;
-        };
-
-        // if the camera has moved since the last render
-        const cameraWorldTransform = this.camera.getWorldTransform();
-        if (maxdiff(cameraWorldTransform, this.prevCameraMat) > 1e-04) {
-            this.prevCameraMat.copy(cameraWorldTransform);
-            this.renderNextFrame();
-        }
-
-        // always render during xr sessions
-        if (this.observer.get('xrActive')) {
-            this.renderNextFrame();
-        }
-
-        // or the ministats is enabled
-        if (this.miniStats.enabled) {
-            this.renderNextFrame();
-        }
-    }
-    renderNextFrame() {
-        this.app.renderNextFrame = true;
-        // if (this.multiframe) {
-        //     this.multiframe.moved();
-        // }
-    }
-    clearCta() {
-        document.querySelector('#panel-left').classList.add('no-cta');
-        document.querySelector('#application-canvas').classList.add('no-cta');
-        document.querySelector('.load-button-panel').classList.add('hide');
-    }
-    // generate and render debug elements on prerender
-    private onPrerender() {
-        // don't update on the first frame
-        if (!this.firstFrame) {
-            let meshInstance;
-
-            // wireframe
-            if (this.dirtyWireframe) {
-                this.dirtyWireframe = false;
-                for (let i = 0; i < this.meshInstances.length; ++i) {
-                    this.meshInstances[i].renderStyle = this.showWireframe ? pc.RENDERSTYLE_WIREFRAME : pc.RENDERSTYLE_SOLID;
-                }
-            }
-
-            // debug bounds
-            if (this.dirtyBounds) {
-                this.dirtyBounds = false;
-
-                // calculate bounds
-                this.sceneBounds = this.calcSceneBounds();
-
-                this.debugBounds.clear();
-                if (this.showBounds) {
-                    this.debugBounds.box(this.sceneBounds.getMin(), this.sceneBounds.getMax());
-                }
-                this.debugBounds.update();
-
-                const v = new pc.Vec3(
-                    this.sceneBounds.halfExtents.x * 2,
-                    this.sceneBounds.halfExtents.y * 2,
-                    this.sceneBounds.halfExtents.z * 2
-                );
-                this.observer.set('scene.bounds', v.toString());
-            }
-
-            // debug normals
-            if (this.dirtyNormals) {
-                this.dirtyNormals = false;
-                this.debugNormals.clear();
-
-                if (this.normalLength > 0) {
-                    for (let i = 0; i < this.meshInstances.length; ++i) {
-                        meshInstance = this.meshInstances[i];
-
-                        const vertexBuffer = meshInstance.morphInstance ?
-                            // @ts-ignore TODO not defined in pc
-                            meshInstance.morphInstance._vertexBuffer : meshInstance.mesh.vertexBuffer;
-
-                        if (vertexBuffer) {
-                            const skinMatrices = meshInstance.skinInstance ? meshInstance.skinInstance.matrices : null;
-
-                            // if there is skinning we need to manually update matrices here otherwise
-                            // our normals are always a frame behind
-                            if (skinMatrices) {
-                                // @ts-ignore TODO not defined in pc
-                                meshInstance.skinInstance.updateMatrices(meshInstance.node);
-                            }
-
-                            this.debugNormals.generateNormals(vertexBuffer,
-                                                              meshInstance.node.getWorldTransform(),
-                                                              this.normalLength,
-                                                              skinMatrices);
-                        }
-                    }
-                }
-                this.debugNormals.update();
-            }
-
-            // debug skeleton
-            if (this.dirtySkeleton) {
-                this.dirtySkeleton = false;
-                this.debugSkeleton.clear();
-
-                if (this.showSkeleton || this.showAxes) {
-                    this.entities.forEach((entity) => {
-                        if (this.meshInstances.length === 0 || entity.findComponent("render")) {
-                            this.debugSkeleton.generateSkeleton(entity, this.showSkeleton, this.showAxes, this.selectedNode);
-                        }
-                    });
-                }
-
-                this.debugSkeleton.update();
-            }
-
-            // debug grid
-            if (this.sceneBounds && this.dirtyGrid) {
-                this.dirtyGrid = false;
-
-                this.debugGrid.clear();
-                if (this.showGrid) {
-                    // calculate primary spacing
-                    const spacing = Math.pow(10, Math.floor(Math.log10(this.sceneBounds.halfExtents.length())));
-
-                    const v0 = new pc.Vec3(0, 0, 0);
-                    const v1 = new pc.Vec3(0, 0, 0);
-
-                    const numGrids = 10;
-                    const a = numGrids * spacing;
-                    for (let x = -numGrids; x < numGrids + 1; ++x) {
-                        const b = x * spacing;
-
-                        v0.set(-a, 0, b);
-                        v1.set(a, 0, b);
-                        this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
-
-                        v0.set(b, 0, -a);
-                        v1.set(b, 0, a);
-                        this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
-                    }
-                }
-                this.debugGrid.update();
-            }
-        }
-    }
-    private onPostrender() {
-        
-        // resolve the (possibly multisampled) render target
-        // if (this.camera.camera.renderTarget._samples > 1) {
-        //     this.camera.camera.renderTarget.resolve();
-        // }
-
-        // perform mulitiframe update. returned flag indicates whether more frames
-        // are needed.
-        //this.multiframeBusy = this.multiframe.update();
-    }
-    private onFrameend() {
-        if (this.firstFrame) {
-            this.firstFrame = false;
-
-            // focus camera after first frame otherwise skinned model bounding
-            // boxes are incorrect
-            this.focusCamera();
-            this.renderNextFrame();
-        } else if (this.loadTimestamp !== null) {
-            this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp} ms`);
-            this.loadTimestamp = null;
-            this.observer.set('spinner', false);
-        }
-
-        // if (this.multiframeBusy) {
-        //     this.app.renderNextFrame = true;
-        // }
-    }
-    //#endregion
-    
     //#region calcBoundingBox
     // collects all mesh instances from entity hierarchy
     private collectMeshInstances(entity: pc.Entity) {
@@ -1146,43 +991,7 @@ class Viewer {
             this.meshInstances = this.meshInstances.concat(meshInstances);
         }
     }
-    // calculate the bounding box of the given mesh
-    private static calcMeshBoundingBox(meshInstances: Array<pc.MeshInstance>) {
-        const bbox = new pc.BoundingBox();
-        for (let i = 0; i < meshInstances.length; ++i) {
-            if (i === 0) {
-                bbox.copy(meshInstances[i].aabb);
-            } else {
-                bbox.add(meshInstances[i].aabb);
-            }
-        }
-        return bbox;
-    }
-    // calculate the bounding box of the graph-node hierarchy
-    private static calcHierBoundingBox(rootNode: pc.Entity) {
-        const position = rootNode.getPosition();
-        let min_x = position.x;
-        let min_y = position.y;
-        let min_z = position.z;
-        let max_x = position.x;
-        let max_y = position.y;
-        let max_z = position.z;
-
-        const recurse = (node: pc.GraphNode) => {
-            const p = node.getPosition();
-            if (p.x < min_x) min_x = p.x; else if (p.x > max_x) max_x = p.x;
-            if (p.y < min_y) min_y = p.y; else if (p.y > max_y) max_y = p.y;
-            if (p.z < min_z) min_z = p.z; else if (p.z > max_z) max_z = p.z;
-            for (let i = 0; i < node.children.length; ++i) {
-                recurse(node.children[i]);
-            }
-        };
-        recurse(rootNode);
-
-        const result = new pc.BoundingBox();
-        result.setMinMax(new pc.Vec3(min_x, min_y, min_z), new pc.Vec3(max_x, max_y, max_z));
-        return result;
-    }
+   
     // calculate the intersection of the two bounding boxes
     private static calcBoundingBoxIntersection(bbox1: pc.BoundingBox, bbox2: pc.BoundingBox) {
         // bounds don't intersect
@@ -1198,171 +1007,122 @@ class Viewer {
                          new pc.Vec3(Math.min(max1.x, max2.x), Math.min(max1.y, max2.y), Math.min(max1.z, max2.z)));
         return result;
     }
-    private calcSceneBounds() {
-        return this.meshInstances.length ?
-            Viewer.calcMeshBoundingBox(this.meshInstances) :
-            (this.sceneRoot.children.length ?
-                Viewer.calcHierBoundingBox(this.sceneRoot) : defaultSceneBounds);
-    }
+    
     //#endregion
 
     //#region Set Property
-    // to change samples at runtime execute in the debugger 'viewer.setSamples(5, false, 2, 0)'
-    setSamples(numSamples: number, jitter = false, size = 1, sigma = 0) {
-        //this.multiframe.setSamples(numSamples, jitter, size, sigma);
-        this.renderNextFrame();
-    }
-    setSelectedVariant(variant: string) {
-        if (variant) {
-            this.entityAssets.forEach((entityAsset) => {
-                if (entityAsset.asset.resource.getMaterialVariants().indexOf(variant) !== -1) {
-                    entityAsset.asset.resource.applyMaterialVariant(entityAsset.entity, variant);
-                }
-            });
-            this.renderNextFrame();
-        }
-    }
+   
+   
     setStats(show: boolean) {
         this.miniStats.enabled = show;
-        this.renderNextFrame();
+        
     }
-    setShowWireframe(show: boolean) {
-        this.showWireframe = show;
-        this.dirtyWireframe = true;
-        this.renderNextFrame();
-    }
-    setShowBounds(show: boolean) {
-        this.showBounds = show;
-        this.dirtyBounds = true;
-        this.renderNextFrame();
-    }
-    setShowSkeleton(show: boolean) {
-        this.showSkeleton = show;
-        this.dirtySkeleton = true;
-        this.renderNextFrame();
-    }
-    setShowAxes(show: boolean) {
-        this.showAxes = show;
-        this.dirtySkeleton = true;
-        this.renderNextFrame();
-    }
-    setShowGrid(show: boolean) {
-        this.showGrid = show;
-        this.dirtyGrid = true;
-        this.renderNextFrame();
-    }
-    setNormalLength(length: number) {
-        this.normalLength = length;
-        this.dirtyNormals = true;
-        this.renderNextFrame();
-    }
+   
     setFov(fov: number) {
         this.camera.camera.fov = fov;
-        this.renderNextFrame();
+        
     }
     setEnvRotation(factor: number) {
         // update skybox
         const rot = new pc.Quat();
         rot.setFromEulerAngles(0, factor, 0);
         this.app.scene.skyboxRotation = rot;
-
-        this.renderNextFrame();
     }
     setMainLightingIntencity(factor: number) {
         this.light.light.intensity = factor;
-        this.renderNextFrame();
+        
     }
     setMainLightingColor_r(value: number) {
         var color = this.light.light.color;
         color.r = value / 255;
         this.light.light.color = color;
-        this.renderNextFrame();
+        
     }
     setMainLightingColor_g(value: number) {
         var color = this.light.light.color;
         color.g = value / 255;
         this.light.light.color = color;
-        this.renderNextFrame();
+        
     }
     setMainLightingColor_b(value: number) {
         var color = this.light.light.color;
         color.b = value / 255;
         this.light.light.color = color;
-        this.renderNextFrame();
+        
     }
     setMainLightingRotation_x(factor: number) {
         var angle = this.light.getLocalEulerAngles();
         angle.x = factor;
         this.light.setLocalEulerAngles(angle);
-        this.renderNextFrame();
+        
     }
     setMainLightingRotation_y(factor: number) {
         var angle = this.light.getLocalEulerAngles();
         angle.y = factor;
         this.light.setLocalEulerAngles(angle);
-        this.renderNextFrame();
+        
     }
     setMainLightingRotation_z(factor: number) {
         var angle = this.light.getLocalEulerAngles();
         angle.z = factor;
         this.light.setLocalEulerAngles(angle);
-        this.renderNextFrame();
+        
     }
     setMainLightShadow(enable: boolean) {
         this.light.light.castShadows = enable;
-        this.renderNextFrame();
+        
     }
     setMainLightShadowIntencity(value: number) {
         this.light.light.shadowIntensity = value;
-        this.renderNextFrame();
+        
     }
     setMainLightShadowResulution(value: number) {
         this.light.light.shadowResolution = value;
-        this.renderNextFrame();
+        
     }
     setSubLightingIntencity(factor: number) {
         this.sublight.light.intensity = factor;
-        this.renderNextFrame();
+        
     }
     setSubLightingColor_r(value: number) {
         var color = this.sublight.light.color;
         color.r = value / 255;
         this.sublight.light.color = color;
-        this.renderNextFrame();
+        
     }
     setSubLightingColor_g(value: number) {
         var color = this.sublight.light.color;
         color.g = value / 255;
         this.sublight.light.color = color;
-        this.renderNextFrame();
+        
     }
     setSubLightingColor_b(value: number) {
         var color = this.sublight.light.color;
         color.b = value / 255;
         this.sublight.light.color = color;
-        this.renderNextFrame();
+        
     }
     setSubLightingRotation_x(factor: number) {
         var angle = this.sublight.getLocalEulerAngles();
         angle.x = factor;
         this.sublight.setLocalEulerAngles(angle);
-        this.renderNextFrame();
+        
     }
     setSubLightingRotation_y(factor: number) {
         var angle = this.sublight.getLocalEulerAngles();
         angle.y = factor;
         this.sublight.setLocalEulerAngles(angle);
-        this.renderNextFrame();
+        
     }
     setSubLightingRotation_z(factor: number) {
         var angle = this.sublight.getLocalEulerAngles();
         angle.z = factor;
         this.sublight.setLocalEulerAngles(angle);
-        this.renderNextFrame();
+        
     }
     setEnvExposure(factor: number) {
         this.app.scene.skyboxIntensity = Math.pow(2, factor);
-        this.renderNextFrame();
+        
     }
     setTonemapping(tonemapping: string) {
         const mapping: Record<string, number> = {
@@ -1373,7 +1133,7 @@ class Viewer {
         };
 
         this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : pc.TONEMAP_ACES;
-        this.renderNextFrame();
+        
     }
     setBackgroundColor(color: { r: number, g: number, b: number }) {
         const cnv = (value: number) => Math.max(0, Math.min(255, Math.floor(value * 255)));
@@ -1382,7 +1142,7 @@ class Viewer {
     setSkyboxMip(mip: number) {
         this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = (mip !== 0);
         this.app.scene.skyboxMip = mip - 1;
-        this.renderNextFrame();
+        
     }
 
     setBloomEnabled(value: boolean) {
@@ -1407,7 +1167,7 @@ class Viewer {
                 attributes: this.observer.get('scripts.bloom')
             });
         }
-        this.renderNextFrame();
+        
     }
 
     setBrightnessContrastEnabled(value: boolean) {
@@ -1429,7 +1189,7 @@ class Viewer {
                 attributes: this.observer.get('scripts.brightnesscontrast')
             });
         }
-        this.renderNextFrame();
+        
     }
 
     setHueSaturationEnabled(value: boolean) {
@@ -1451,7 +1211,7 @@ class Viewer {
                 attributes: this.observer.get('scripts.huesaturation')
             });
         }
-        this.renderNextFrame();
+        
     }
 
     setVignetteEnabled(value: boolean) {
@@ -1473,7 +1233,7 @@ class Viewer {
                 attributes: this.observer.get('scripts.vignette')
             });
         }
-        this.renderNextFrame();
+        
     }
 
     setBokehEnabled(value: boolean) {
@@ -1498,7 +1258,7 @@ class Viewer {
                 attributes: this.observer.get('scripts.bokeh')
             });
         }
-        this.renderNextFrame();
+        
     }
     //#endregion
 

@@ -46,7 +46,9 @@ class SmoothedValue {
             }
             else(this.type == 2)
             {
-                this.target.y = Math.min(-2, this.target.y);
+                //this.target = pc.Vec3.ZERO;
+
+                this.target.y = Math.min(0, this.target.y);
             }
         }
 
@@ -110,6 +112,9 @@ class OrbitCamera {
         this.azimElevDistance.update(deltaTime);
 
         const aed = this.azimElevDistance.value;
+        //console.log(this.focalPoint.value)
+        //console.log(aed);
+
         this.calcForwardVec(vec);
         vec.mulScalar(aed.z);
         vec.add(this.focalPoint.value);

@@ -25,20 +25,8 @@ const observerData: ObserverData = {
     ui: {
         active: null
     },
-    render: {
-        multisampleSupported: true,
-        multisample: false,
-        hq: false,
-        pixelScale: 1
-    },
     show: {
         stats: false,
-        wireframe: false,
-        bounds: false,
-        skeleton: false,
-        axes: false,
-        grid: false,
-        normals: 0,
         fov: 45
     },
     lighting: {
@@ -151,8 +139,6 @@ const observerData: ObserverData = {
     },
     spinner: false,
     error: null,
-    xrSupported: false,
-    xrActive: false,
     glbUrl: null
 };
 

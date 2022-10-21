@@ -66,16 +66,6 @@ class CameraPanel extends React.Component <{ observerData: ObserverData, setProp
             <Panel headerText='CAMERA' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} collapsed={true}>
                 <Slider label='Fov' precision={0} min={35} max={150} value={props.observerData.show.fov} setProperty={(value: number) => props.setProperty('show.fov', value)} />
                 <Select label='Tonemap' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} value={props.observerData.lighting.tonemapping} setProperty={(value: number) => props.setProperty('lighting.tonemapping', value)} />
-                <Select label='Pixel Scale' value={props.observerData.render.pixelScale} type='number' options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))} setProperty={(value: number) => props.setProperty('render.pixelScale', value)} />
-                <Toggle label='Multisample' value={props.observerData.render.multisample} enabled={props.observerData.render.multisampleSupported}
-                    setProperty={(value: boolean) => props.setProperty('render.multisample', value)}
-                />
-                <Toggle label='High Quality' value={props.observerData.render.hq} enabled={!props.observerData.show.stats}
-                    setProperty={(value: boolean) => props.setProperty('render.hq', value)}
-                />
-                <Toggle label='Stats' value={props.observerData.show.stats}
-                    setProperty={(value: boolean) => props.setProperty('show.stats', value)}
-                />
             </Panel>
         );
     }
@@ -226,21 +216,16 @@ class DOFPanel extends React.Component <{ scripts: ObserverData['scripts'], setP
         );
     }
 }
-class ShowPanel extends React.Component <{ showData: ObserverData['show'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
-    shouldComponentUpdate(nextProps: Readonly<{ showData: ObserverData['show']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
-        return JSON.stringify(nextProps.showData) !== JSON.stringify(this.props.showData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
+class ShowPanel extends React.Component <{ showData: ObserverData['show'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ showData: ObserverData['show'], setProperty: SetProperty }>): boolean {
+        return JSON.stringify(nextProps.showData) !== JSON.stringify(this.props.showData);
     }
 
     render() {
         const props = this.props;
         return (
             <Panel headerText='DEBUG' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} collapsed={true}>
-                    <Toggle label='Grid' value={props.showData.grid} setProperty={(value: boolean) => props.setProperty('show.grid', value)}/>
-                    <Toggle label='Wireframe' value={props.showData.wireframe} setProperty={(value: boolean) => props.setProperty('show.wireframe', value)} />
-                    <Toggle label='Axes' value={props.showData.axes} setProperty={(value: boolean) => props.setProperty('show.axes', value)} />
-                    <Toggle label='Skeleton' value={props.showData.skeleton} setProperty={(value: boolean) => props.setProperty('show.skeleton', value)} />
-                    <Toggle label='Bounds' value={props.showData.bounds} setProperty={(value: boolean) => props.setProperty('show.bounds', value)} />
-                    <Slider label='Normals' precision={2} min={0} max={1} setProperty={(value: number) => props.setProperty('show.normals', value)} value={props.showData.normals} />
+                    <Toggle label='Stats' value={props.showData.stats} setProperty={(value: boolean) => props.setProperty('show.stats', value)}/>
             </Panel>
         );
     }
@@ -293,7 +278,7 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                     <DOFPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <VinettePanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     {/* <SSAOPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} /> */}
-                    <ShowPanel setProperty={this.props.setProperty} showData={this.props.observerData.show} uiData={this.props.observerData.ui} />    
+                    <ShowPanel setProperty={this.props.setProperty} showData={this.props.observerData.show}/>    
                 </div>
             </Container>
         );

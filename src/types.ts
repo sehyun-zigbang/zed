@@ -17,20 +17,8 @@ export interface ObserverData {
     ui: {
         active?: string
     },
-    render: {
-        multisampleSupported: boolean,
-        multisample: boolean,
-        hq: boolean,
-        pixelScale: number
-    },
     show: {
         stats: boolean,
-        wireframe: boolean,
-        bounds: boolean,
-        skeleton: boolean,
-        axes: boolean,
-        grid: boolean,
-        normals: number,
         fov: number
     },
     lighting: {
@@ -147,8 +135,6 @@ export interface ObserverData {
     },
     spinner: boolean,
     error?: string,
-    xrSupported: boolean,
-    xrActive: boolean,
     glbUrl?: string
 }
 
