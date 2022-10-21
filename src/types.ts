@@ -107,6 +107,18 @@ export interface ObserverData {
         name?: string
     },
     scripts:{
+        brightnesscontrast:
+        {
+            enabled: boolean,
+            brightness:number,
+            contrast:number
+        },
+        huesaturation:
+        {
+            enabled: boolean,
+            hue:number,
+            saturation:number
+        }
         bloom:{
             enabled: boolean,
             bloomIntensity: number,

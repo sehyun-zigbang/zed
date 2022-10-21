@@ -175,6 +175,25 @@ class BloomPanel extends React.Component <{ scripts: ObserverData['scripts'], se
         );
     }
 }
+class ColorAdjustPanel extends React.Component <{ scripts: ObserverData['scripts'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ scripts: ObserverData['scripts']; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.scripts) !== JSON.stringify(this.props.scripts);
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <Panel headerText='COLOR ADJUST' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} collapsed={true}>
+                <Toggle label='Enable' value={props.scripts.brightnesscontrast.enabled} setProperty={(value: boolean) => props.setProperty('scripts.brightnesscontrast.enabled', value)} />
+                <Slider label='Brightness' precision={2} min={-1} max={1} value={props.scripts.brightnesscontrast.brightness} setProperty={(value: number) => props.setProperty('scripts.brightnesscontrast.brightness', value)} />
+                <Slider label='Contrast' precision={2} min={-1} max={1} value={props.scripts.brightnesscontrast.contrast} setProperty={(value: number) => props.setProperty('scripts.brightnesscontrast.contrast', value)} />
+                <Toggle label='Enable' value={props.scripts.huesaturation.enabled} setProperty={(value: boolean) => props.setProperty('scripts.huesaturation.enabled', value)} />
+                <Slider label='Hue' precision={2} min={-1} max={1} value={props.scripts.huesaturation.hue} setProperty={(value: number) => props.setProperty('scripts.huesaturation.hue', value)} />
+                <Slider label='Saturation' precision={2} min={-1} max={1} value={props.scripts.huesaturation.saturation} setProperty={(value: number) => props.setProperty('scripts.huesaturation.saturation', value)} />
+            </Panel>
+        );
+    }
+}
 class ShowPanel extends React.Component <{ showData: ObserverData['show'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ showData: ObserverData['show']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.showData) !== JSON.stringify(this.props.showData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
@@ -237,6 +256,7 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                     <EnvironmentPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <LightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <SubLightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
+                    <ColorAdjustPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <BloomPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <SSAOPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <ShowPanel setProperty={this.props.setProperty} showData={this.props.observerData.show} uiData={this.props.observerData.ui} />    

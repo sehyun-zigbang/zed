@@ -111,6 +111,18 @@ const observerData: ObserverData = {
         name: null
     },
     scripts:{
+        brightnesscontrast:
+        {
+            enabled: false,
+            brightness:0,
+            contrast:0,
+        },
+        huesaturation:
+        {
+            enabled: false,
+            hue:0,
+            saturation:0
+        },
         bloom: {
             enabled: true,
             bloomIntensity: 0.5,

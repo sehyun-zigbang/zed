@@ -89,7 +89,9 @@ class Viewer {
         this.app = app;
 
         const assets = {
-            'bloom': new pc.Asset('bloom', 'script', { url: getAssetPath('effect/bloom.js') })
+            'bloom': new pc.Asset('bloom', 'script', { url: getAssetPath('effect/bloom.js') }),
+            'brightnesscontrast': new pc.Asset('brightnesscontrast', 'script', { url: getAssetPath('effect/brightnesscontrast.js') }),
+            'huesaturation': new pc.Asset('huesaturation', 'script', { url: getAssetPath('effect/huesaturation.js') })
         };
     
         const assetListLoader = new pc.AssetListLoader(Object.values(assets), app.assets);
@@ -346,12 +348,20 @@ class Viewer {
             'lighting.subLight.rotation_y': this.setSubLightingRotation_y.bind(this),
             'lighting.subLight.rotation_z': this.setSubLightingRotation_z.bind(this),
 
-            // // bloom
+            // bloom
             'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
             'scripts.bloom.bloomIntensity': this.setBloomIntensity.bind(this),
             'scripts.bloom.bloomThreshold': this.setBloomThreshold.bind(this),
             'scripts.bloom.blurAmount': this.setBlurAmount.bind(this),
 
+            // color adjust
+            'scripts.brightnesscontrast.enabled': this.setBrightnessContrastEnabled.bind(this),
+            'scripts.brightnesscontrast.brightness': this.setBrightness.bind(this),
+            'scripts.brightnesscontrast.contrast': this.setContrast.bind(this),
+            'scripts.huesaturation.enabled': this.setHueSaturationEnabled.bind(this),
+            'scripts.huesaturation.hue': this.setHue.bind(this),
+            'scripts.huesaturation.saturation': this.setSaturation.bind(this),
+            
             'scene.variant.selected': this.setSelectedVariant.bind(this)
         };
 
@@ -1362,7 +1372,6 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    updateBloom = false;
     setBloomEnabled(value: boolean) {
         this.setBloomApply();
     }
@@ -1387,6 +1396,51 @@ class Viewer {
         }
         this.renderNextFrame();
     }
+
+    setBrightnessContrastEnabled(value: boolean) {
+        this.setBrightnessContrastApply();
+    }
+    setBrightness(value: number) {
+        this.setBrightnessContrastApply();
+    }
+    setContrast(value: number) {
+        this.setBrightnessContrastApply();
+    }
+    setBrightnessContrastApply()
+    {
+        const enabled = this.observer.get('scripts.brightnesscontrast.enabled');
+        this.camera.script.destroy('brightnesscontrast');
+        if(enabled)
+        {
+            this.camera.script.create('brightnesscontrast', {
+                attributes: this.observer.get('scripts.brightnesscontrast')
+            });
+        }
+        this.renderNextFrame();
+    }
+
+    setHueSaturationEnabled(value: boolean) {
+        this.setHueSaturatioApply();
+    }
+    setHue(value: number) {
+        this.setHueSaturatioApply();
+    }
+    setSaturation(value: number) {
+        this.setHueSaturatioApply();
+    }
+    setHueSaturatioApply()
+    {
+        const enabled = this.observer.get('scripts.huesaturation.enabled');
+        this.camera.script.destroy('huesaturation');
+        if(enabled)
+        {
+            this.camera.script.create('huesaturation', {
+                attributes: this.observer.get('scripts.huesaturation')
+            });
+        }
+        this.renderNextFrame();
+    }
+
     //#endregion
 
     //#region Util
