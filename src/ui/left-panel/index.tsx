@@ -277,7 +277,7 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                     <BloomPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <DOFPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <VinettePanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
-                    {/* <SSAOPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} /> */}
+                    <SSAOPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <ShowPanel setProperty={this.props.setProperty} showData={this.props.observerData.show}/>    
                 </div>
             </Container>

@@ -54,7 +54,7 @@ class Viewer {
         const canvas = this.canvas;
 
         // create the application
-        this.app = new pc.Application(canvas, {
+        const app = this.app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
             touch: new pc.TouchDevice(canvas),
             graphicsDeviceOptions: {
@@ -67,6 +67,7 @@ class Viewer {
                 //preserveDrawingBuffer: true
             }
         });
+        
     }
     //#endregion
 
@@ -92,7 +93,8 @@ class Viewer {
             clearColor: new pc.Color(0, 0, 0, 0)
         });
         //camera.camera.requestSceneColorMap(true);
-
+        camera.camera.requestSceneDepthMap(true);
+        
         // Create OrbitCamera Component
         this.orbitCamera = new OrbitCamera(camera, 0.25);
         this.orbitCameraInputMouse = new OrbitCameraInputMouse(app, this.orbitCamera);
@@ -108,7 +110,8 @@ class Viewer {
             'brightnesscontrast': new pc.Asset('brightnesscontrast', 'script', { url: getAssetPath('effect/brightnesscontrast.js') }),
             'huesaturation': new pc.Asset('huesaturation', 'script', { url: getAssetPath('effect/huesaturation.js') }),
             'bokeh': new pc.Asset('bokeh', 'script', { url: getAssetPath('effect/bokeh.js') }),
-            'vignette': new pc.Asset('vignette', 'script', { url: getAssetPath('effect/vignette.js') })
+            'vignette': new pc.Asset('vignette', 'script', { url: getAssetPath('effect/vignette.js') }),
+            'ssao': new pc.Asset('ssao', 'script', { url: getAssetPath('effect/ssao.js') })
         };
     
         const assetListLoader = new pc.AssetListLoader(Object.values(assets), app.assets);
@@ -146,6 +149,13 @@ class Viewer {
                 'scripts.vignette.enabled': this.setVignetteEnabled.bind(this),
                 'scripts.vignette.offset': this.setVignetteOffset.bind(this),
                 'scripts.vignette.darkness': this.setVignetteDarkness.bind(this),
+
+                 // ssao
+                'scripts.ssao.enabled': this.setSSAOEnabled.bind(this),
+                'scripts.ssao.radius': this.setSSAORadius.bind(this),
+                'scripts.ssao.samples': this.setSSAOSamples.bind(this),
+                'scripts.ssao.brightness': this.setSSAOBrightness.bind(this),
+                'scripts.ssao.downscale': this.setSSAODownscale.bind(this)
             };
     
             // register control events
@@ -517,6 +527,11 @@ class Viewer {
     update(deltaTime: number) {
         // update the orbit camera
         this.orbitCamera.update(deltaTime);
+
+        if (this.observer.get('scripts.bokeh.enabled') || this.observer.get('scripts.ssao.enabled')) {
+            // @ts-ignore engine-tsd
+            this.app.drawDepthTexture(0.7, -0.7, 0.5, 0.5);
+        }
     }
     onFrameend() {
         if (this.firstFrame) {
@@ -1142,7 +1157,6 @@ class Viewer {
     setSkyboxMip(mip: number) {
         this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = (mip !== 0);
         this.app.scene.skyboxMip = mip - 1;
-        
     }
 
     setBloomEnabled(value: boolean) {
@@ -1167,7 +1181,6 @@ class Viewer {
                 attributes: this.observer.get('scripts.bloom')
             });
         }
-        
     }
 
     setBrightnessContrastEnabled(value: boolean) {
@@ -1189,7 +1202,6 @@ class Viewer {
                 attributes: this.observer.get('scripts.brightnesscontrast')
             });
         }
-        
     }
 
     setHueSaturationEnabled(value: boolean) {
@@ -1260,6 +1272,35 @@ class Viewer {
         }
         
     }
+
+    setSSAOEnabled(value: boolean) {
+        this.setSSAOApply();
+    }
+    setSSAORadius(value: number) {
+        this.setSSAOApply();
+    }
+    setSSAOSamples(value: number) {
+        this.setSSAOApply();
+    }
+    setSSAOBrightness(value: number) {
+        this.setSSAOApply();
+    }
+    setSSAODownscale(value: number) {
+        this.setSSAOApply();
+    }
+    setSSAOApply()
+    {
+        const enabled = this.observer.get('scripts.ssao.enabled');
+        this.camera.script.destroy('ssao');
+        if(enabled)
+        {
+            this.camera.script.create('ssao', {
+                attributes: this.observer.get('scripts.ssao')
+            });
+        }
+    }
+
+
     //#endregion
 
     //#region Util
