@@ -129,6 +129,12 @@ const observerData: ObserverData = {
             bloomThreshold: 0.5,
             blurAmount: 15
         },
+        bokeh:{
+            enabled: true,
+            maxBlur: 0.02,
+            aperture: 0.15,
+            focus: 1,
+        },
         ssao: {
             enabled: true,
             radius: 5,

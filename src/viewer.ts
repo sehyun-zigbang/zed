@@ -92,6 +92,7 @@ class Viewer {
             'bloom': new pc.Asset('bloom', 'script', { url: getAssetPath('effect/bloom.js') }),
             'brightnesscontrast': new pc.Asset('brightnesscontrast', 'script', { url: getAssetPath('effect/brightnesscontrast.js') }),
             'huesaturation': new pc.Asset('huesaturation', 'script', { url: getAssetPath('effect/huesaturation.js') }),
+            'bokeh': new pc.Asset('bokeh', 'script', { url: getAssetPath('effect/bokeh.js') }),
             'vignette': new pc.Asset('vignette', 'script', { url: getAssetPath('effect/vignette.js') })
         };
     
@@ -363,6 +364,12 @@ class Viewer {
             'scripts.huesaturation.hue': this.setHue.bind(this),
             'scripts.huesaturation.saturation': this.setSaturation.bind(this),
             
+            // dof
+            'scripts.bokeh.enabled': this.setBokehEnabled.bind(this),
+            'scripts.bokeh.maxBlur': this.setBokehMaxBlur.bind(this),
+            'scripts.bokeh.aperture': this.setBokehAperture.bind(this),
+            'scripts.bokeh.focus': this.setBokehFocus.bind(this),
+
             // vignette
             'scripts.vignette.enabled': this.setVignetteEnabled.bind(this),
             'scripts.vignette.offset': this.setVignetteOffset.bind(this),
@@ -1469,6 +1476,30 @@ class Viewer {
         this.renderNextFrame();
     }
 
+    setBokehEnabled(value: boolean) {
+        this.setBokehApply();
+    }
+    setBokehMaxBlur(value: number) {
+        this.setBokehApply();
+    }
+    setBokehAperture(value: number) {
+        this.setBokehApply();
+    }
+    setBokehFocus(value: number) {
+        this.setBokehApply();
+    }
+    setBokehApply()
+    {
+        const enabled = this.observer.get('scripts.bokeh.enabled');
+        this.camera.script.destroy('bokeh');
+        if(enabled)
+        {
+            this.camera.script.create('bokeh', {
+                attributes: this.observer.get('scripts.bokeh')
+            });
+        }
+        this.renderNextFrame();
+    }
     //#endregion
 
     //#region Util

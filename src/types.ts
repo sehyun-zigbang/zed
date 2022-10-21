@@ -125,6 +125,12 @@ export interface ObserverData {
             bloomThreshold: number,
             blurAmount: number,
         },
+        bokeh:{
+            enabled: boolean,
+            maxBlur: number,
+            aperture: number,
+            focus: number,
+        },
         ssao: {
             enabled: boolean,
             radius: number,

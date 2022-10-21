@@ -210,6 +210,22 @@ class VinettePanel extends React.Component <{ scripts: ObserverData['scripts'], 
         );
     }
 }
+class DOFPanel extends React.Component <{ scripts: ObserverData['scripts'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ scripts: ObserverData['scripts']; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.scripts) !== JSON.stringify(this.props.scripts);
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <Panel headerText='DOF' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} collapsed={true}>
+                <Toggle label='Enable' value={props.scripts.bokeh.enabled} setProperty={(value: boolean) => props.setProperty('scripts.bokeh.enabled', value)} />
+                <Slider label='MaxBlur' precision={2} min={0} max={0.1} value={props.scripts.bokeh.maxBlur} setProperty={(value: number) => props.setProperty('scripts.bokeh.maxBlur', value)} />
+                <Slider label='Aperture' precision={2} min={0} max={0.2} value={props.scripts.bokeh.aperture} setProperty={(value: number) => props.setProperty('scripts.bokeh.aperture', value)} />
+            </Panel>
+        );
+    }
+}
 class ShowPanel extends React.Component <{ showData: ObserverData['show'], uiData: ObserverData['ui'], setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ showData: ObserverData['show']; uiData: ObserverData['ui']; setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.showData) !== JSON.stringify(this.props.showData) || JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
@@ -274,6 +290,7 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                     <SubLightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <ColorAdjustPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <BloomPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
+                    <DOFPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <VinettePanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     {/* <SSAOPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} /> */}
                     <ShowPanel setProperty={this.props.setProperty} showData={this.props.observerData.show} uiData={this.props.observerData.ui} />    
