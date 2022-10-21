@@ -135,6 +135,12 @@ const observerData: ObserverData = {
             samples: 16,
             brightness: 0,
             downscale: 1
+        },
+        vignette:
+        {
+            enabled: true,
+            offset: 0.9,
+            darkness: 0.8,
         }
     },
     spinner: false,

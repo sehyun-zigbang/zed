@@ -91,7 +91,8 @@ class Viewer {
         const assets = {
             'bloom': new pc.Asset('bloom', 'script', { url: getAssetPath('effect/bloom.js') }),
             'brightnesscontrast': new pc.Asset('brightnesscontrast', 'script', { url: getAssetPath('effect/brightnesscontrast.js') }),
-            'huesaturation': new pc.Asset('huesaturation', 'script', { url: getAssetPath('effect/huesaturation.js') })
+            'huesaturation': new pc.Asset('huesaturation', 'script', { url: getAssetPath('effect/huesaturation.js') }),
+            'vignette': new pc.Asset('vignette', 'script', { url: getAssetPath('effect/vignette.js') })
         };
     
         const assetListLoader = new pc.AssetListLoader(Object.values(assets), app.assets);
@@ -362,6 +363,11 @@ class Viewer {
             'scripts.huesaturation.hue': this.setHue.bind(this),
             'scripts.huesaturation.saturation': this.setSaturation.bind(this),
             
+            // vignette
+            'scripts.vignette.enabled': this.setVignetteEnabled.bind(this),
+            'scripts.vignette.offset': this.setVignetteOffset.bind(this),
+            'scripts.vignette.darkness': this.setVignetteDarkness.bind(this),
+
             'scene.variant.selected': this.setSelectedVariant.bind(this)
         };
 
@@ -1436,6 +1442,28 @@ class Viewer {
         {
             this.camera.script.create('huesaturation', {
                 attributes: this.observer.get('scripts.huesaturation')
+            });
+        }
+        this.renderNextFrame();
+    }
+
+    setVignetteEnabled(value: boolean) {
+        this.setVignetteApply();
+    }
+    setVignetteOffset(value: number) {
+        this.setVignetteApply();
+    }
+    setVignetteDarkness(value: number) {
+        this.setVignetteApply();
+    }
+    setVignetteApply()
+    {
+        const enabled = this.observer.get('scripts.vignette.enabled');
+        this.camera.script.destroy('vignette');
+        if(enabled)
+        {
+            this.camera.script.create('vignette', {
+                attributes: this.observer.get('scripts.vignette')
             });
         }
         this.renderNextFrame();

@@ -131,6 +131,12 @@ export interface ObserverData {
             samples: number,
             brightness: number,
             downscale: number
+        },
+        vignette:
+        {
+            enabled: boolean,
+            offset: number,
+            darkness: number,
         }
     },
     spinner: boolean,

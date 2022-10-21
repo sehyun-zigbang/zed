@@ -9,57 +9,54 @@
  * @property {number} offset Controls the offset of the effect.
  * @property {number} darkness Controls the darkness of the effect.
  */
-function VignetteEffect(graphicsDevice) {
-    pc.PostEffect.call(this, graphicsDevice);
+class VignetteEffect extends pc.PostEffect {
+    constructor(graphicsDevice) {
+        super(graphicsDevice);
 
-    // Shaders
-    var attributes = {
-        aPosition: pc.SEMANTIC_POSITION
-    };
+        // Shaders
+        var attributes = {
+            aPosition: pc.SEMANTIC_POSITION
+        };
 
-    var passThroughVert = [
-        "attribute vec2 aPosition;",
-        "",
-        "varying vec2 vUv0;",
-        "",
-        "void main(void)",
-        "{",
-        "    gl_Position = vec4(aPosition, 0.0, 1.0);",
-        "    vUv0 = (aPosition.xy + 1.0) * 0.5;",
-        "}"
-    ].join("\n");
+        var passThroughVert = [
+            "attribute vec2 aPosition;",
+            "",
+            "varying vec2 vUv0;",
+            "",
+            "void main(void)",
+            "{",
+            "    gl_Position = vec4(aPosition, 0.0, 1.0);",
+            "    vUv0 = (aPosition.xy + 1.0) * 0.5;",
+            "}"
+        ].join("\n");
 
-    var luminosityFrag = [
-        "precision " + graphicsDevice.precision + " float;",
-        "",
-        "uniform sampler2D uColorBuffer;",
-        "uniform float uDarkness;",
-        "uniform float uOffset;",
-        "",
-        "varying vec2 vUv0;",
-        "",
-        "void main() {",
-        "    vec4 texel = texture2D(uColorBuffer, vUv0);",
-        "    vec2 uv = (vUv0 - vec2(0.5)) * vec2(uOffset);",
-        "    gl_FragColor = vec4(mix(texel.rgb, vec3(1.0 - uDarkness), dot(uv, uv)), texel.a);",
-        "}"
-    ].join("\n");
+        var luminosityFrag = [
+            "precision " + graphicsDevice.precision + " float;",
+            "",
+            "uniform sampler2D uColorBuffer;",
+            "uniform float uDarkness;",
+            "uniform float uOffset;",
+            "",
+            "varying vec2 vUv0;",
+            "",
+            "void main() {",
+            "    vec4 texel = texture2D(uColorBuffer, vUv0);",
+            "    vec2 uv = (vUv0 - vec2(0.5)) * vec2(uOffset);",
+            "    gl_FragColor = vec4(mix(texel.rgb, vec3(1.0 - uDarkness), dot(uv, uv)), texel.a);",
+            "}"
+        ].join("\n");
 
-    this.vignetteShader = new pc.Shader(graphicsDevice, {
-        attributes: attributes,
-        vshader: passThroughVert,
-        fshader: luminosityFrag
-    });
+        this.vignetteShader = new pc.Shader(graphicsDevice, {
+            attributes: attributes,
+            vshader: passThroughVert,
+            fshader: luminosityFrag
+        });
 
-    this.offset = 1;
-    this.darkness = 1;
-}
+        this.offset = 1;
+        this.darkness = 1;
+    }
 
-VignetteEffect.prototype = Object.create(pc.PostEffect.prototype);
-VignetteEffect.prototype.constructor = VignetteEffect;
-
-Object.assign(VignetteEffect.prototype, {
-    render: function (inputTarget, outputTarget, rect) {
+    render(inputTarget, outputTarget, rect) {
         var device = this.device;
         var scope = device.scope;
 
@@ -68,7 +65,7 @@ Object.assign(VignetteEffect.prototype, {
         scope.resolve("uDarkness").setValue(this.darkness);
         pc.drawFullscreenQuad(device, outputTarget, this.vertexBuffer, this.vignetteShader, rect);
     }
-});
+}
 
 // ----------------- SCRIPT DEFINITION ------------------ //
 var Vignette = pc.createScript('vignette');
