@@ -44,10 +44,10 @@ const observerData: ObserverData = {
     lighting: {
         direct: 0.6,
         env: {
-            value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
+            value: getAssetPath('./skybox/artist_workshop_2k.hdr'),
             options: null,
             default: null,
-            skyboxMip: '4',
+            skyboxMip: '0',
             exposure: 0.2,
             backgroundColor: { r: 0.4, g: 0.45, b: 0.5 },
             rotation: -10
@@ -113,20 +113,20 @@ const observerData: ObserverData = {
     scripts:{
         brightnesscontrast:
         {
-            enabled: false,
-            brightness:0,
-            contrast:0,
+            enabled: true,
+            brightness:-0.1,
+            contrast:0.2,
         },
         huesaturation:
         {
-            enabled: false,
+            enabled: true,
             hue:0,
-            saturation:0
+            saturation:0.2
         },
         bloom: {
             enabled: true,
-            bloomIntensity: 0.5,
-            bloomThreshold: 0.7,
+            bloomIntensity: 0.7,
+            bloomThreshold: 0.5,
             blurAmount: 15
         },
         ssao: {
