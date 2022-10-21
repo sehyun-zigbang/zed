@@ -426,7 +426,7 @@ class Viewer {
         });
 
         // hierarchy
-        //this.observer.set('scene.nodes', JSON.stringify(graph));
+        this.observer.set('scene.nodes', JSON.stringify(graph));
 
         // mesh stats
         this.observer.set('scene.meshCount', meshCount);
