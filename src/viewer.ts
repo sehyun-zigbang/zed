@@ -426,6 +426,7 @@ class Viewer {
         });
 
         // hierarchy
+        // 추후 이 부분 지우면 패널 제거 가능
         this.observer.set('scene.nodes', JSON.stringify(graph));
 
         // mesh stats

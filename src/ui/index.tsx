@@ -26,7 +26,7 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
         var name_bin = `${model_name}.bin`;
         var url_glTF = `${model_path}/${name_glTF}`;
         var url_bin = `${model_path}/${name_bin}`;
-        props.setProperty('scene.name', name_glTF);
+        props.setProperty('scene.name', model_name);
 
         const viewer = (window as any).viewer;
 
