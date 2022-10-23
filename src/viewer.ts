@@ -540,6 +540,11 @@ class Viewer {
         // update the orbit camera
         this.orbitCamera.update(deltaTime);
 
+        if(this.miniStats.enable)
+        {
+            this.renderNextFrame();
+        }
+        
         const maxdiff = (a: pc.Mat4, b: pc.Mat4) => {
             let result = 0;
             for (let i = 0; i < 16; ++i) {
@@ -569,11 +574,6 @@ class Viewer {
                     this.app.drawDepthTexture(0.7, -0.7, 0.5, 0.5);
                 }
             }
-        }
-
-        if(this.miniStats.enable)
-        {
-            this.renderNextFrame();
         }
     }
     onFrameend() {
