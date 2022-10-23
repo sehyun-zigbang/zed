@@ -35,12 +35,79 @@ class Viewer {
         this.init_object();
         this.init_stats();
 
-        this.observer.on('canvasResized', () => {
-            this.resizeCanvas();
-        });
-        this.resizeCanvas();
+        // Create Post-Process Component
+        const assets = {
+            "fxaa": new pc.Asset('fxaa', 'script', { url: getAssetPath('effect/fxaa.js') }),
+            'bloom': new pc.Asset('bloom', 'script', { url: getAssetPath('effect/bloom.js') }),
+            'brightnesscontrast': new pc.Asset('brightnesscontrast', 'script', { url: getAssetPath('effect/brightnesscontrast.js') }),
+            'huesaturation': new pc.Asset('huesaturation', 'script', { url: getAssetPath('effect/huesaturation.js') }),
+            'vignette': new pc.Asset('vignette', 'script', { url: getAssetPath('effect/vignette.js') }),
+            'bokeh': new pc.Asset('bokeh', 'script', { url: getAssetPath('effect/bokeh.js') }),
+            'ssao': new pc.Asset('ssao', 'script', { url: getAssetPath('effect/ssao.js') })
+        };
+    
+        const assetListLoader = new pc.AssetListLoader(Object.values(assets), this.app.assets);
+        assetListLoader.load(() => {
 
-        this.app.start();
+            const camera = this.camera;
+            observer.set('show.postprocess',  observer.get('show.postprocess'));
+            
+            camera.addComponent("script");
+            Object.keys(observer.get('scripts')).forEach((key) => {
+                camera.script.create(key, {
+                    attributes: observer.get(`scripts.${key}`)
+                });
+            });
+
+            const controlEvents:any = {
+                'show.postprocess': this.setPostProcessEnabled.bind(this),
+                // fxaa
+                'scripts.fxaa.enabled': this.setFxaaEnabled.bind(this),
+
+                // bloom
+                'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
+                'scripts.bloom.bloomIntensity': this.setBloomIntensity.bind(this),
+                'scripts.bloom.bloomThreshold': this.setBloomThreshold.bind(this),
+                'scripts.bloom.blurAmount': this.setBlurAmount.bind(this),
+    
+                // // color adjust
+                'scripts.brightnesscontrast.enabled': this.setBrightnessContrastEnabled.bind(this),
+                'scripts.brightnesscontrast.brightness': this.setBrightness.bind(this),
+                'scripts.brightnesscontrast.contrast': this.setContrast.bind(this),
+                'scripts.huesaturation.enabled': this.setHueSaturationEnabled.bind(this),
+                'scripts.huesaturation.hue': this.setHue.bind(this),
+                'scripts.huesaturation.saturation': this.setSaturation.bind(this),
+                
+                // dof
+                'scripts.bokeh.enabled': this.setBokehEnabled.bind(this),
+                'scripts.bokeh.maxBlur': this.setBokehMaxBlur.bind(this),
+                'scripts.bokeh.aperture': this.setBokehAperture.bind(this),
+    
+                // // vignette
+                'scripts.vignette.enabled': this.setVignetteEnabled.bind(this),
+                'scripts.vignette.offset': this.setVignetteOffset.bind(this),
+                'scripts.vignette.darkness': this.setVignetteDarkness.bind(this),
+
+                //  // ssao
+                'scripts.ssao.enabled': this.setSSAOEnabled.bind(this),
+                'scripts.ssao.radius': this.setSSAORadius.bind(this),
+                'scripts.ssao.samples': this.setSSAOSamples.bind(this),
+                'scripts.ssao.brightness': this.setSSAOBrightness.bind(this),
+                'scripts.ssao.downscale': this.setSSAODownscale.bind(this)
+            };
+           
+            // register control events
+            Object.keys(controlEvents).forEach((e) => {
+                observer.on(`${e}:set`, controlEvents[e]);
+            });
+
+            observer.on('canvasResized', () => {
+                this.resizeCanvas();
+            });
+            this.resizeCanvas();
+
+            this.app.start();
+        });
     }
 
     //-----------------------------------
@@ -104,72 +171,6 @@ class Viewer {
 
         // Add 
         this.app.root.addChild(camera);
-
-        // Create Post-Process Component
-        const assets = {
-            "fxaa": new pc.Asset('fxaa', 'script', { url: getAssetPath('effect/fxaa.js') }),
-            'bloom': new pc.Asset('bloom', 'script', { url: getAssetPath('effect/bloom.js') }),
-            'brightnesscontrast': new pc.Asset('brightnesscontrast', 'script', { url: getAssetPath('effect/brightnesscontrast.js') }),
-            'huesaturation': new pc.Asset('huesaturation', 'script', { url: getAssetPath('effect/huesaturation.js') }),
-            'vignette': new pc.Asset('vignette', 'script', { url: getAssetPath('effect/vignette.js') }),
-            'bokeh': new pc.Asset('bokeh', 'script', { url: getAssetPath('effect/bokeh.js') }),
-            'ssao': new pc.Asset('ssao', 'script', { url: getAssetPath('effect/ssao.js') })
-        };
-    
-        const assetListLoader = new pc.AssetListLoader(Object.values(assets), app.assets);
-        assetListLoader.load(() => {
-
-            observer.set('show.postprocess',  observer.get('show.postprocess'));
-            
-            camera.addComponent("script");
-            Object.keys(observer.get('scripts')).forEach((key) => {
-                camera.script.create(key, {
-                    attributes: observer.get(`scripts.${key}`)
-                });
-            });
-
-            const controlEvents:any = {
-                'show.postprocess': this.setPostProcessEnabled.bind(this),
-                // fxaa
-                'scripts.fxaa.enabled': this.setFxaaEnabled.bind(this),
-
-                // bloom
-                'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
-                'scripts.bloom.bloomIntensity': this.setBloomIntensity.bind(this),
-                'scripts.bloom.bloomThreshold': this.setBloomThreshold.bind(this),
-                'scripts.bloom.blurAmount': this.setBlurAmount.bind(this),
-    
-                // // color adjust
-                'scripts.brightnesscontrast.enabled': this.setBrightnessContrastEnabled.bind(this),
-                'scripts.brightnesscontrast.brightness': this.setBrightness.bind(this),
-                'scripts.brightnesscontrast.contrast': this.setContrast.bind(this),
-                'scripts.huesaturation.enabled': this.setHueSaturationEnabled.bind(this),
-                'scripts.huesaturation.hue': this.setHue.bind(this),
-                'scripts.huesaturation.saturation': this.setSaturation.bind(this),
-                
-                // dof
-                'scripts.bokeh.enabled': this.setBokehEnabled.bind(this),
-                'scripts.bokeh.maxBlur': this.setBokehMaxBlur.bind(this),
-                'scripts.bokeh.aperture': this.setBokehAperture.bind(this),
-    
-                // // vignette
-                'scripts.vignette.enabled': this.setVignetteEnabled.bind(this),
-                'scripts.vignette.offset': this.setVignetteOffset.bind(this),
-                'scripts.vignette.darkness': this.setVignetteDarkness.bind(this),
-
-                //  // ssao
-                'scripts.ssao.enabled': this.setSSAOEnabled.bind(this),
-                'scripts.ssao.radius': this.setSSAORadius.bind(this),
-                'scripts.ssao.samples': this.setSSAOSamples.bind(this),
-                'scripts.ssao.brightness': this.setSSAOBrightness.bind(this),
-                'scripts.ssao.downscale': this.setSSAODownscale.bind(this)
-            };
-           
-            // register control events
-            Object.keys(controlEvents).forEach((e) => {
-                observer.on(`${e}:set`, controlEvents[e]);
-            });
-        });
 
         // store app things
         this.cameraFocusBBox = null;
@@ -358,7 +359,6 @@ class Viewer {
         this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
 
         const controlEvents:any = {
-            
             // tone
             'lighting.tonemapping': this.setTonemapping.bind(this),
 
@@ -678,7 +678,7 @@ class Viewer {
         const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
         const canvasSize = this.getCanvasSize();
 
-        device.maxPixelRatio = window.devicePixelRatio;
+        device.maxPixelRatio = 1;//window.devicePixelRatio;
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
         this.renderNextFrame();
     }
