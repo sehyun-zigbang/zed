@@ -582,6 +582,7 @@ class Viewer {
             this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp} ms`);
             this.loadTimestamp = null;
             this.observer.set('spinner', false);
+            this.renderNextFrame();
         }
     }
     //#endregion
@@ -864,6 +865,7 @@ class Viewer {
         this.app.scene.setSkybox(null);
         
         this.skyboxLoaded = false;
+        this.renderNextFrame();
     }
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
@@ -883,6 +885,7 @@ class Viewer {
     // skybox texture, which is either a cubemap or equirect texture.
     private initSkyboxFromTexture(skybox: pc.Texture) {
         if (pc.EnvLighting) {
+            this.renderNextFrame();
             return this.initSkyboxFromTextureNew(skybox);
         }
 
@@ -934,7 +937,7 @@ class Viewer {
 
         // assign the textures to the scene
         app.scene.setSkybox(cubemaps);
-        
+        this.renderNextFrame();
     }
 
     // load the image files into the skybox. this function supports loading a single equirectangular
@@ -1009,6 +1012,7 @@ class Viewer {
             app.assets.load(cubemapAsset);
         }
         this.skyboxLoaded = true;
+        this.renderNextFrame();
     }
 
     //#endregion
