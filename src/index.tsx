@@ -132,7 +132,7 @@ const observerData: ObserverData = {
             enabled: true,
             radius: 5,
             samples: 16,
-            brightness: 0.3,
+            brightness: 0.2,
             downscale: 1
         },
         vignette:
