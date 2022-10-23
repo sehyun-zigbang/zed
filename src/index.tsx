@@ -100,6 +100,10 @@ const observerData: ObserverData = {
         name: null
     },
     scripts:{
+        fxaa:
+        {
+            enabled: true,
+        },
         brightnesscontrast:
         {
             enabled: true,

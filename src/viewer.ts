@@ -106,6 +106,7 @@ class Viewer {
 
         // Create Post-Process Component
         const assets = {
+            "fxaa": new pc.Asset('fxaa', 'script', { url: getAssetPath('effect/fxaa.js') }),
             'bloom': new pc.Asset('bloom', 'script', { url: getAssetPath('effect/bloom.js') }),
             'brightnesscontrast': new pc.Asset('brightnesscontrast', 'script', { url: getAssetPath('effect/brightnesscontrast.js') }),
             'huesaturation': new pc.Asset('huesaturation', 'script', { url: getAssetPath('effect/huesaturation.js') }),
@@ -125,6 +126,9 @@ class Viewer {
             });
 
             const controlEvents:any = {
+                // fxaa
+                'scripts.fxaa.enabled': this.setFxaaEnabled.bind(this),
+
                 // bloom
                 'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
                 'scripts.bloom.bloomIntensity': this.setBloomIntensity.bind(this),
@@ -1163,7 +1167,9 @@ class Viewer {
         this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = (mip !== 0);
         this.app.scene.skyboxMip = mip - 1;
     }
-
+    setFxaaEnabled(value: boolean) {
+        this.camera.script.get('fxaa').fire('state', value);
+    }
     setBloomEnabled(value: boolean) {
         this.camera.script.get('bloom').fire('state', value);
     }

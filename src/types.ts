@@ -96,6 +96,10 @@ export interface ObserverData {
         name?: string
     },
     scripts:{
+        fxaa:
+        {
+            enabled: boolean,
+        },
         brightnesscontrast:
         {
             enabled: boolean,
