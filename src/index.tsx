@@ -28,7 +28,7 @@ const observerData: ObserverData = {
     show: {
         stats: false,
         depth: false,
-        fov: 45,
+        fov: 35,
         postprocess: true,
     },
     lighting: {

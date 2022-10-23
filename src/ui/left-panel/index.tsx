@@ -64,7 +64,7 @@ class CameraPanel extends React.Component <{ observerData: ObserverData, setProp
         const props = this.props;
         return (
             <Panel headerText='CAMERA' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} collapsed={true}>
-                <Slider label='Fov' precision={0} min={35} max={150} value={props.observerData.show.fov} setProperty={(value: number) => props.setProperty('show.fov', value)} />
+                <Slider label='Fov' precision={0} min={20} max={70} value={props.observerData.show.fov} setProperty={(value: number) => props.setProperty('show.fov', value)} />
                 <Select label='Tonemap' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} value={props.observerData.lighting.tonemapping} setProperty={(value: number) => props.setProperty('lighting.tonemapping', value)} />
                 <Toggle label='FXAA' value={props.observerData.scripts.fxaa.enabled} setProperty={(value: boolean) => props.setProperty('scripts.fxaa.enabled', value)} />
                 {/* <Toggle label='Post Process' value={props.observerData.show.postprocess} setProperty={(value: boolean) => props.setProperty('show.postprocess', value)} /> */}

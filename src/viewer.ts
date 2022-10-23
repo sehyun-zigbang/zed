@@ -93,7 +93,7 @@ class Viewer {
             frustumCulling: true,
             clearColor: new pc.Color(0, 0, 0, 0)
         });
-        camera.camera.requestSceneColorMap(true);
+        //camera.camera.requestSceneColorMap(true);
         camera.camera.requestSceneDepthMap(true);
         
         // Create OrbitCamera Component
@@ -168,10 +168,7 @@ class Viewer {
             // register control events
             Object.keys(controlEvents).forEach((e) => {
                 observer.on(`${e}:set`, controlEvents[e]);
-                //observer.set(e, observer.get(e), false, false, true);
             });
-
-            this.renderNextFrame();
         });
 
         // store app things
@@ -179,7 +176,6 @@ class Viewer {
         this.cameraPosition = null;
 
         const controlEvents:any = {
-            
             'show.fov': this.setFov.bind(this),
         };
 
@@ -385,6 +381,161 @@ class Viewer {
             observer.on(`${e}:set`, controlEvents[e]);
             observer.set(e, observer.get(e), false, false, true);
         });
+    }
+
+    private clearSkybox() {
+        this.app.scene.envAtlas = null;
+        this.app.scene.setSkybox(null);
+        
+        this.skyboxLoaded = false;
+        this.renderNextFrame();
+    }
+    // initialize the faces and prefiltered lighting data from the given
+    // skybox texture, which is either a cubemap or equirect texture.
+    private initSkyboxFromTextureNew(env: pc.Texture) {
+        const skybox = pc.EnvLighting.generateSkyboxCubemap(env);
+        const lighting = pc.EnvLighting.generateLightingSource(env);
+        // The second options parameter should not be necessary but the TS declarations require it for now
+        const envAtlas = pc.EnvLighting.generateAtlas(lighting, {});
+        lighting.destroy();
+
+        this.app.scene.envAtlas = envAtlas;
+        this.app.scene.skybox = skybox;
+        
+    }
+
+    // initialize the faces and prefiltered lighting data from the given
+    // skybox texture, which is either a cubemap or equirect texture.
+    private initSkyboxFromTexture(skybox: pc.Texture) {
+        if (pc.EnvLighting) {
+            this.renderNextFrame();
+            return this.initSkyboxFromTextureNew(skybox);
+        }
+
+        const app = this.app;
+        const device = app.graphicsDevice;
+
+        const createCubemap = (size: number) => {
+            return new pc.Texture(device, {
+                name: `skyboxFaces-${size}`,
+                cubemap: true,
+                width: size,
+                height: size,
+                type: pc.TEXTURETYPE_RGBM,
+                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+                fixCubemapSeams: true,
+                mipmaps: false
+            });
+        };
+
+        const cubemaps = [];
+
+        cubemaps.push(pc.EnvLighting.generateSkyboxCubemap(skybox));
+
+        const lightingSource = pc.EnvLighting.generateLightingSource(skybox);
+
+        // create top level
+        const top = createCubemap(128);
+        pc.reprojectTexture(lightingSource, top, {
+            numSamples: 1
+        });
+        cubemaps.push(top);
+
+        // generate prefiltered lighting data
+        const sizes = [128, 64, 32, 16, 8, 4];
+        const specPower = [1, 512, 128, 32, 8, 2];
+        for (let i = 1; i < sizes.length; ++i) {
+            const level = createCubemap(sizes[i]);
+            pc.reprojectTexture(lightingSource, level, {
+                numSamples: 1024,
+                specularPower: specPower[i],
+                distribution: 'ggx'
+            });
+
+            cubemaps.push(level);
+        }
+
+        lightingSource.destroy();
+
+        // assign the textures to the scene
+        app.scene.setSkybox(cubemaps);
+        this.renderNextFrame();
+    }
+
+    // load the image files into the skybox. this function supports loading a single equirectangular
+    // skybox image or 6 cubemap faces.
+    private loadSkybox(files: Array<File>) {
+        const app = this.app;
+
+        if (files.length !== 6) {
+            // load equirectangular skybox
+            const textureAsset = new pc.Asset('skybox_equi', 'texture', {
+                url: files[0].url,
+                filename: files[0].filename
+            });
+            textureAsset.ready(() => {
+                const texture = textureAsset.resource;
+                if (texture.type === pc.TEXTURETYPE_DEFAULT && texture.format === pc.PIXELFORMAT_R8_G8_B8_A8) {
+                    // assume RGBA data (pngs) are RGBM
+                    texture.type = pc.TEXTURETYPE_RGBM;
+                }
+                this.initSkyboxFromTexture(texture);
+            });
+            app.assets.add(textureAsset);
+            app.assets.load(textureAsset);
+        } else {
+            // sort files into the correct order based on filename
+            const names = [
+                ['posx', 'negx', 'posy', 'negy', 'posz', 'negz'],
+                ['px', 'nx', 'py', 'ny', 'pz', 'nz'],
+                ['right', 'left', 'up', 'down', 'front', 'back'],
+                ['right', 'left', 'top', 'bottom', 'forward', 'backward'],
+                ['0', '1', '2', '3', '4', '5']
+            ];
+
+            const getOrder = (filename: string) => {
+                const fn = filename.toLowerCase();
+                for (let i = 0; i < names.length; ++i) {
+                    const nameList = names[i];
+                    for (let j = 0; j < nameList.length; ++j) {
+                        if (fn.indexOf(nameList[j] + '.') !== -1) {
+                            return j;
+                        }
+                    }
+                }
+                return 0;
+            };
+
+            const sortPred = (first: File, second: File) => {
+                const firstOrder = getOrder(first.filename);
+                const secondOrder = getOrder(second.filename);
+                return firstOrder < secondOrder ? -1 : (secondOrder < firstOrder ? 1 : 0);
+            };
+
+            files.sort(sortPred);
+
+            // construct an asset for each cubemap face
+            const faceAssets = files.map((file, index) => {
+                const faceAsset = new pc.Asset('skybox_face' + index, 'texture', file);
+                app.assets.add(faceAsset);
+                app.assets.load(faceAsset);
+                return faceAsset;
+            });
+
+            // construct the cubemap asset
+            const cubemapAsset = new pc.Asset('skybox_cubemap', 'cubemap', null, {
+                textures: faceAssets.map(faceAsset => faceAsset.id)
+            });
+            cubemapAsset.loadFaces = true;
+            cubemapAsset.on('load', () => {
+                this.initSkyboxFromTexture(cubemapAsset.resource);
+            });
+            app.assets.add(cubemapAsset);
+            app.assets.load(cubemapAsset);
+        }
+        this.skyboxLoaded = true;
+        this.renderNextFrame();
     }
     //#endregion
 
@@ -857,164 +1008,6 @@ class Viewer {
         // return true if a model/scene was loaded and false otherwise
         return hasModelFilename;
     }
-    //#endregion
-
-    //#region Load Skybox
-    private clearSkybox() {
-        this.app.scene.envAtlas = null;
-        this.app.scene.setSkybox(null);
-        
-        this.skyboxLoaded = false;
-        this.renderNextFrame();
-    }
-    // initialize the faces and prefiltered lighting data from the given
-    // skybox texture, which is either a cubemap or equirect texture.
-    private initSkyboxFromTextureNew(env: pc.Texture) {
-        const skybox = pc.EnvLighting.generateSkyboxCubemap(env);
-        const lighting = pc.EnvLighting.generateLightingSource(env);
-        // The second options parameter should not be necessary but the TS declarations require it for now
-        const envAtlas = pc.EnvLighting.generateAtlas(lighting, {});
-        lighting.destroy();
-
-        this.app.scene.envAtlas = envAtlas;
-        this.app.scene.skybox = skybox;
-        
-    }
-
-    // initialize the faces and prefiltered lighting data from the given
-    // skybox texture, which is either a cubemap or equirect texture.
-    private initSkyboxFromTexture(skybox: pc.Texture) {
-        if (pc.EnvLighting) {
-            this.renderNextFrame();
-            return this.initSkyboxFromTextureNew(skybox);
-        }
-
-        const app = this.app;
-        const device = app.graphicsDevice;
-
-        const createCubemap = (size: number) => {
-            return new pc.Texture(device, {
-                name: `skyboxFaces-${size}`,
-                cubemap: true,
-                width: size,
-                height: size,
-                type: pc.TEXTURETYPE_RGBM,
-                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-                fixCubemapSeams: true,
-                mipmaps: false
-            });
-        };
-
-        const cubemaps = [];
-
-        cubemaps.push(pc.EnvLighting.generateSkyboxCubemap(skybox));
-
-        const lightingSource = pc.EnvLighting.generateLightingSource(skybox);
-
-        // create top level
-        const top = createCubemap(128);
-        pc.reprojectTexture(lightingSource, top, {
-            numSamples: 1
-        });
-        cubemaps.push(top);
-
-        // generate prefiltered lighting data
-        const sizes = [128, 64, 32, 16, 8, 4];
-        const specPower = [1, 512, 128, 32, 8, 2];
-        for (let i = 1; i < sizes.length; ++i) {
-            const level = createCubemap(sizes[i]);
-            pc.reprojectTexture(lightingSource, level, {
-                numSamples: 1024,
-                specularPower: specPower[i],
-                distribution: 'ggx'
-            });
-
-            cubemaps.push(level);
-        }
-
-        lightingSource.destroy();
-
-        // assign the textures to the scene
-        app.scene.setSkybox(cubemaps);
-        this.renderNextFrame();
-    }
-
-    // load the image files into the skybox. this function supports loading a single equirectangular
-    // skybox image or 6 cubemap faces.
-    private loadSkybox(files: Array<File>) {
-        const app = this.app;
-
-        if (files.length !== 6) {
-            // load equirectangular skybox
-            const textureAsset = new pc.Asset('skybox_equi', 'texture', {
-                url: files[0].url,
-                filename: files[0].filename
-            });
-            textureAsset.ready(() => {
-                const texture = textureAsset.resource;
-                if (texture.type === pc.TEXTURETYPE_DEFAULT && texture.format === pc.PIXELFORMAT_R8_G8_B8_A8) {
-                    // assume RGBA data (pngs) are RGBM
-                    texture.type = pc.TEXTURETYPE_RGBM;
-                }
-                this.initSkyboxFromTexture(texture);
-            });
-            app.assets.add(textureAsset);
-            app.assets.load(textureAsset);
-        } else {
-            // sort files into the correct order based on filename
-            const names = [
-                ['posx', 'negx', 'posy', 'negy', 'posz', 'negz'],
-                ['px', 'nx', 'py', 'ny', 'pz', 'nz'],
-                ['right', 'left', 'up', 'down', 'front', 'back'],
-                ['right', 'left', 'top', 'bottom', 'forward', 'backward'],
-                ['0', '1', '2', '3', '4', '5']
-            ];
-
-            const getOrder = (filename: string) => {
-                const fn = filename.toLowerCase();
-                for (let i = 0; i < names.length; ++i) {
-                    const nameList = names[i];
-                    for (let j = 0; j < nameList.length; ++j) {
-                        if (fn.indexOf(nameList[j] + '.') !== -1) {
-                            return j;
-                        }
-                    }
-                }
-                return 0;
-            };
-
-            const sortPred = (first: File, second: File) => {
-                const firstOrder = getOrder(first.filename);
-                const secondOrder = getOrder(second.filename);
-                return firstOrder < secondOrder ? -1 : (secondOrder < firstOrder ? 1 : 0);
-            };
-
-            files.sort(sortPred);
-
-            // construct an asset for each cubemap face
-            const faceAssets = files.map((file, index) => {
-                const faceAsset = new pc.Asset('skybox_face' + index, 'texture', file);
-                app.assets.add(faceAsset);
-                app.assets.load(faceAsset);
-                return faceAsset;
-            });
-
-            // construct the cubemap asset
-            const cubemapAsset = new pc.Asset('skybox_cubemap', 'cubemap', null, {
-                textures: faceAssets.map(faceAsset => faceAsset.id)
-            });
-            cubemapAsset.loadFaces = true;
-            cubemapAsset.on('load', () => {
-                this.initSkyboxFromTexture(cubemapAsset.resource);
-            });
-            app.assets.add(cubemapAsset);
-            app.assets.load(cubemapAsset);
-        }
-        this.skyboxLoaded = true;
-        this.renderNextFrame();
-    }
-
     //#endregion
 
     //#region calcBoundingBox
