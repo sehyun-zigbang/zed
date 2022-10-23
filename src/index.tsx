@@ -27,6 +27,7 @@ const observerData: ObserverData = {
     },
     show: {
         stats: false,
+        depth: false,
         fov: 45
     },
     lighting: {
@@ -119,15 +120,15 @@ const observerData: ObserverData = {
         },
         bokeh:{
             enabled: true,
-            maxBlur: 0.02,
-            aperture: 0.15,
+            maxBlur: 0.003,
+            aperture: 0.1,
             focus: 1,
         },
         ssao: {
             enabled: true,
             radius: 5,
             samples: 16,
-            brightness: 0,
+            brightness: 0.3,
             downscale: 1
         },
         vignette:
