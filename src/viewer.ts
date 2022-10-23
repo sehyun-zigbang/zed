@@ -570,6 +570,11 @@ class Viewer {
                 }
             }
         }
+
+        if(this.miniStats.enable)
+        {
+            this.renderNextFrame();
+        }
     }
     onFrameend() {
         if (this.firstFrame) {
