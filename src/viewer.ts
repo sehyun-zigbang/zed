@@ -119,6 +119,8 @@ class Viewer {
         const assetListLoader = new pc.AssetListLoader(Object.values(assets), app.assets);
         assetListLoader.load(() => {
 
+            observer.set('show.postprocess',  observer.get('show.postprocess'));
+            
             camera.addComponent("script");
             Object.keys(observer.get('scripts')).forEach((key) => {
                 camera.script.create(key, {
@@ -127,6 +129,7 @@ class Viewer {
             });
 
             const controlEvents:any = {
+                'show.postprocess': this.setPostProcessEnabled.bind(this),
                 // fxaa
                 'scripts.fxaa.enabled': this.setFxaaEnabled.bind(this),
 
@@ -161,12 +164,14 @@ class Viewer {
                 'scripts.ssao.brightness': this.setSSAOBrightness.bind(this),
                 'scripts.ssao.downscale': this.setSSAODownscale.bind(this)
             };
-
+           
             // register control events
             Object.keys(controlEvents).forEach((e) => {
                 observer.on(`${e}:set`, controlEvents[e]);
                 //observer.set(e, observer.get(e), false, false, true);
             });
+
+            this.renderNextFrame();
         });
 
         // store app things
@@ -196,6 +201,7 @@ class Viewer {
                 const len3 = intersection.halfExtents.length();
                 if ((Math.abs(len3 - len1) / len1 < 0.1) &&
                     (Math.abs(len3 - len2) / len2 < 0.1)) {
+                    this.renderNextFrame();
                     return;
                 }
             }
@@ -1201,12 +1207,25 @@ class Viewer {
         this.app.scene.skyboxMip = mip - 1;
         this.renderNextFrame();
     }
+    setPostProcessEnabled(value: boolean) {
+        console.log('a');
+        this.setBloomEnabled(value);
+        this.setBokehEnabled(value);
+        this.setSSAOEnabled(value);
+        this.setVignetteEnabled(value);
+        this.setHueSaturationEnabled(value);
+        this.setBrightnessContrastEnabled(value);
+        this.renderNextFrame();
+    }
+
     setFxaaEnabled(value: boolean) {
         this.camera.script.get('fxaa').fire('state', value);
         this.renderNextFrame();
     }
     setBloomEnabled(value: boolean) {
-        this.camera.script.get('bloom').fire('state', value);
+        console.log('b');
+
+        this.camera.script.get('bloom').fire('state', value && this.observer.get("show.postprocess"));
         this.renderNextFrame();
     }
     setBloomIntensity(value: number) {
@@ -1223,7 +1242,7 @@ class Viewer {
     }
 
     setBrightnessContrastEnabled(value: boolean) {
-        this.camera.script.get('brightnesscontrast').fire('state', value);
+        this.camera.script.get('brightnesscontrast').fire('state', value && this.observer.get("show.postprocess"));
         this.renderNextFrame();
     }
     setBrightness(value: number) {
@@ -1236,7 +1255,7 @@ class Viewer {
     }
 
     setHueSaturationEnabled(value: boolean) {
-        this.camera.script.get('huesaturation').fire('state', value);
+        this.camera.script.get('huesaturation').fire('state', value && this.observer.get("show.postprocess"));
         this.renderNextFrame();
     }
     setHue(value: number) {
@@ -1249,7 +1268,7 @@ class Viewer {
     }
 
     setVignetteEnabled(value: boolean) {
-        this.camera.script.get('vignette').fire('state', value);
+        this.camera.script.get('vignette').fire('state', value && this.observer.get("show.postprocess"));
         this.renderNextFrame();
     }
     setVignetteOffset(value: number) {
@@ -1262,7 +1281,7 @@ class Viewer {
     }
 
     setBokehEnabled(value: boolean) {
-        this.camera.script.get('bokeh').fire('state', value);
+        this.camera.script.get('bokeh').fire('state', value && this.observer.get("show.postprocess"));
         this.renderNextFrame();
     }
     setBokehMaxBlur(value: number) {
@@ -1279,7 +1298,7 @@ class Viewer {
     }
 
     setSSAOEnabled(value: boolean) {
-        this.camera.script.get('ssao').fire('state', value);
+        this.camera.script.get('ssao').fire('state', value && this.observer.get("show.postprocess"));
         this.renderNextFrame();
     }
     setSSAORadius(value: number) {

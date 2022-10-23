@@ -20,7 +20,8 @@ export interface ObserverData {
     show: {
         stats: boolean,
         depth: boolean,
-        fov: number
+        fov: number,
+        postprocess: boolean
     },
     lighting: {
         direct: number,
