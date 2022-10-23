@@ -540,11 +540,6 @@ class Viewer {
         // update the orbit camera
         this.orbitCamera.update(deltaTime);
 
-        if(this.miniStats.enable)
-        {
-            this.renderNextFrame();
-        }
-        
         const maxdiff = (a: pc.Mat4, b: pc.Mat4) => {
             let result = 0;
             for (let i = 0; i < 16; ++i) {
@@ -1213,7 +1208,6 @@ class Viewer {
         this.renderNextFrame();
     }
     setPostProcessEnabled(value: boolean) {
-        console.log('a');
         this.setBloomEnabled(value);
         this.setBokehEnabled(value);
         this.setSSAOEnabled(value);
@@ -1228,8 +1222,6 @@ class Viewer {
         this.renderNextFrame();
     }
     setBloomEnabled(value: boolean) {
-        console.log('b');
-
         this.camera.script.get('bloom').fire('state', value && this.observer.get("show.postprocess"));
         this.renderNextFrame();
     }
