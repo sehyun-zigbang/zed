@@ -306,15 +306,7 @@ class Viewer {
         light.setLocalEulerAngles(rotation);
         app.root.addChild(light);
 
-        const sublight = this.sublight = new pc.Entity();
-        sublight.addComponent("light", {
-            type: "directional",
-            color: lightColor,
-            castShadows: false,
-            intensity: intensity
-        });
-        sublight.setLocalEulerAngles(rotation);
-        app.root.addChild(sublight);
+        
         // const sublight = this.sublight = new pc.Entity();
         // sublight.addComponent("light", {
         //     type: "directional",
