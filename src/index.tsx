@@ -38,12 +38,12 @@ const observerData: ObserverData = {
             options: null,
             default: null,
             skyboxMip: '0',
-            exposure: 0.2,
+            exposure: -0.2,
             backgroundColor: { r: 0.4, g: 0.45, b: 0.5 },
             rotation: -10
         },
         mainLight: {
-            intencity: 0.6,
+            intencity: 0.4,
             color_r: 255,
             color_g: 255,
             color_b: 255,
@@ -51,8 +51,8 @@ const observerData: ObserverData = {
             rotation_y: 30,
             rotation_z: 0,
             shadow: true,
-            shadowResolution: 2048,
-            shadowIntencity: 1
+            shadowResolution: 4096,
+            shadowIntencity: 1.5
         },
         subLight: {
             intencity: 0.45,
@@ -109,7 +109,7 @@ const observerData: ObserverData = {
         {
             enabled: true,
             brightness:-0.1,
-            contrast:0.2,
+            contrast:0.05,
         },
         huesaturation:
         {
@@ -119,8 +119,8 @@ const observerData: ObserverData = {
         },
         bloom: {
             enabled: true,
-            bloomIntensity: 0.7,
-            bloomThreshold: 0.5,
+            bloomIntensity: 0.2,
+            bloomThreshold: 0.4,
             blurAmount: 15
         },
         bokeh:{
@@ -139,7 +139,7 @@ const observerData: ObserverData = {
         vignette:
         {
             enabled: true,
-            offset: 0.9,
+            offset: 0.6,
             darkness: 0.8,
         }
     },
