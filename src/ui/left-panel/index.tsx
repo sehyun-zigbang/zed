@@ -277,7 +277,8 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                     <CameraPanel setProperty={this.props.setProperty} observerData={this.props.observerData} />
                     <EnvironmentPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
                     <LightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
-                    <SubLightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} />
+                    {/* <SubLightingPanel setProperty={this.props.setProperty} lightingData={this.props.observerData.lighting} uiData={this.props.observerData.ui} /> */}
+                    <LightingBakePanel setProperty={this.props.setProperty} lighting={this.props.observerData.lighting}/>
                     <ColorAdjustPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <BloomPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />
                     <DOFPanel setProperty={this.props.setProperty} scripts={this.props.observerData.scripts} />

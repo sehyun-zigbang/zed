@@ -547,13 +547,17 @@ SSAO.prototype.initialize = function () {
     }, this);
 
     var queue = this.entity.camera.postEffects;
-    queue.addEffect(this.effect);
-
+    //queue.addEffect(this.effect);
+    var added = false;
     this.on('state', function (enabled) {
-        if (enabled) {
-            queue.addEffect(this.effect);
-        } else {
-            queue.removeEffect(this.effect);
+        if(added != enabled)
+        {
+            added = enabled;
+            if (enabled) {
+                queue.addEffect(this.effect);
+            } else {
+                queue.removeEffect(this.effect);
+            }
         }
     });
 

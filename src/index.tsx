@@ -124,13 +124,13 @@ const observerData: ObserverData = {
             blurAmount: 15
         },
         bokeh:{
-            enabled: true,
+            enabled: false,
             maxBlur: 0.003,
             aperture: 0.1,
             focus: 1,
         },
         ssao: {
-            enabled: true,
+            enabled: false,
             radius: 5,
             samples: 16,
             brightness: 0.2,

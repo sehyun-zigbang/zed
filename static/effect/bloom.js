@@ -247,7 +247,7 @@ var Bloom = pc.createScript('bloom');
 
 // initialize code called once per entity
 Bloom.prototype.initialize = function () {
-    this.effect = new BloomEffect(this.app.graphicsDevice);
+        this.effect = new BloomEffect(this.app.graphicsDevice);
 
         this.effect.bloomThreshold = this.bloomThreshold;
         this.effect.blurAmount = this.blurAmount;
@@ -255,17 +255,21 @@ Bloom.prototype.initialize = function () {
     
         var queue = this.entity.camera.postEffects;
     
-        queue.addEffect(this.effect);
+        //queue.addEffect(this.effect);
     
         this.on('attr', function (name, value) {
             this.effect[name] = value;
         }, this);
-    
+        var added = false;
         this.on('state', function (enabled) {
-            if (enabled) {
-                queue.addEffect(this.effect);
-            } else {
-                queue.removeEffect(this.effect);
+            if(added != enabled)
+            {
+                added = enabled;
+                if (enabled) {
+                    queue.addEffect(this.effect);
+                } else {
+                    queue.removeEffect(this.effect);
+                }
             }
         });
     

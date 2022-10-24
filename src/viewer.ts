@@ -28,11 +28,12 @@ class Viewer {
         this.observer = observer;
 
         this.init_app();
+        this.init_skyBox();
+        this.init_object();
         this.init_camera();
         this.init_light();
-        this.init_skyBox();
         this.init_dropHandler();
-        this.init_object();
+       
         this.init_stats();
 
         // Create Post-Process Component
@@ -99,6 +100,7 @@ class Viewer {
             // register control events
             Object.keys(controlEvents).forEach((e) => {
                 observer.on(`${e}:set`, controlEvents[e]);
+                observer.set(e, observer.get(e), false, false, true);
             });
 
             observer.on('canvasResized', () => {
@@ -313,6 +315,15 @@ class Viewer {
         });
         sublight.setLocalEulerAngles(rotation);
         app.root.addChild(sublight);
+        // const sublight = this.sublight = new pc.Entity();
+        // sublight.addComponent("light", {
+        //     type: "directional",
+        //     color: lightColor,
+        //     castShadows: false,
+        //     intensity: intensity
+        // });
+        // sublight.setLocalEulerAngles(rotation);
+        // app.root.addChild(sublight);
 
         const controlEvents:any = {
             // main light
@@ -328,13 +339,13 @@ class Viewer {
             'lighting.mainLight.shadowIntencity': this.setMainLightShadowIntencity.bind(this),
 
             // main light
-            'lighting.subLight.intencity': this.setSubLightingIntencity.bind(this),
-            'lighting.subLight.color_r': this.setSubLightingColor_r.bind(this),
-            'lighting.subLight.color_g': this.setSubLightingColor_g.bind(this),
-            'lighting.subLight.color_b': this.setSubLightingColor_b.bind(this),
-            'lighting.subLight.rotation_x': this.setSubLightingRotation_x.bind(this),
-            'lighting.subLight.rotation_y': this.setSubLightingRotation_y.bind(this),
-            'lighting.subLight.rotation_z': this.setSubLightingRotation_z.bind(this)
+            // 'lighting.subLight.intencity': this.setSubLightingIntencity.bind(this),
+            // 'lighting.subLight.color_r': this.setSubLightingColor_r.bind(this),
+            // 'lighting.subLight.color_g': this.setSubLightingColor_g.bind(this),
+            // 'lighting.subLight.color_b': this.setSubLightingColor_b.bind(this),
+            // 'lighting.subLight.rotation_x': this.setSubLightingRotation_x.bind(this),
+            // 'lighting.subLight.rotation_y': this.setSubLightingRotation_y.bind(this),
+            // 'lighting.subLight.rotation_z': this.setSubLightingRotation_z.bind(this)
         };
 
         // register control events
