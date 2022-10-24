@@ -132,6 +132,52 @@ class SubLightingPanel extends React.Component <{ lightingData: ObserverData['li
         );
     }
 }
+class LightingBakePanel extends React.Component <{ lighting: ObserverData['lighting'], setProperty: SetProperty }> {
+    shouldComponentUpdate(nextProps: Readonly<{ lighting: ObserverData['lighting']; setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.lighting) !== JSON.stringify(this.props.lighting);
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <Panel headerText='LIGHTING BAKE' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} collapsed={true}>
+                   <Toggle label='lightmapFilterEnabled' value={props.lighting.bake.settings.lightmapFilterEnabled} setProperty={(value: boolean) => props.setProperty('lighting.bake.settings.lightmapFilterEnabled', value)} />
+                   <Slider label='lightmapFilterRange' precision={0} min={1} max={20} value={props.lighting.bake.settings.lightmapFilterRange} setProperty={(value: number) => props.setProperty('lighting.bake.settings.lightmapFilterRange', value)} />
+                   <Slider label='lightmapFilterSmoothness' precision={1} min={0.1} max={2} value={props.lighting.bake.settings.lightmapFilterSmoothness} setProperty={(value: number) => props.setProperty('lighting.bake.settings.lightmapFilterSmoothness', value)} />
+
+                    <Toggle label='directional bake' value={props.lighting.bake.directional.bake} setProperty={(value: boolean) => props.setProperty('lighting.bake.directional.bake', value)} />
+                    <Slider label='bakeNumSamples' precision={0} min={0} max={64} value={props.lighting.bake.directional.bakeNumSamples} setProperty={(value: number) => props.setProperty('lighting.bake.directional.bakeNumSamples', value)} />
+                    <Slider label='bakeArea' precision={0} min={0} max={40} value={props.lighting.bake.directional.bakeArea} setProperty={(value: number) => props.setProperty('lighting.bake.directional.bakeArea', value)} />
+
+                    <Toggle label='ambientBake' value={props.lighting.bake.ambient.ambientBake} setProperty={(value: boolean) => props.setProperty('lighting.bake.ambient.ambientBake', value)} />
+                    <Toggle label='directional bake' value={props.lighting.bake.ambient.hemisphere} setProperty={(value: boolean) => props.setProperty('lighting.bake.ambient.hemisphere', value)} />
+                    <Slider label='bakeNumSamples' precision={0} min={0} max={60} value={props.lighting.bake.ambient.ambientBakeNumSamples} setProperty={(value: number) => props.setProperty('lighting.bake.ambient.ambientBakeNumSamples', value)} />
+                    <Slider label='Contrast' precision={1} min={-1} max={1} value={props.lighting.bake.ambient.ambientBakeOcclusionContrast} setProperty={(value: number) => props.setProperty('lighting.bake.ambient.ambientBakeOcclusionContrast', value)} />
+                    <Slider label='Brightness' precision={1} min={-1} max={1} value={props.lighting.bake.ambient.ambientBakeOcclusionBrightness} setProperty={(value: number) => props.setProperty('lighting.bake.ambient.ambientBakeOcclusionBrightness', value)} />
+                    
+                    <Detail label='Bake Time' value={props.lighting.bake.stats.duration} />
+                   {/* <Toggle label='ambient Bake' value={props.lighting.bake.ambient.ambientBake} setProperty={(value: boolean) => props.setProperty('lighting.bake.ambient.ambientBake', value)} />
+                   <Toggle label='hemisphere' value={props.lighting.bake.ambient.hemisphere} setProperty={(value: boolean) => props.setProperty('lighting.bake.ambient.hemisphere', value)} />
+
+                   <Toggle label='directional bake' value={props.lighting.bake.directional.bake} setProperty={(value: boolean) => props.setProperty('lighting.bake.directional.bake', value)} /> */}
+            </Panel>
+        );
+    }
+}
+
+// 'lighting.bake.settings.lightmapFilterEnabled': this.setMainLightingIntencity.bind(this),
+// 'lighting.bake.settings.lightmapFilterRange': this.setMainLightingIntencity.bind(this),
+// 'lighting.bake.settings.lightmapFilterSmoothness': this.setMainLightingIntencity.bind(this),
+
+// 'lighting.bake.ambient.ambientBake': this.setMainLightingIntencity.bind(this),
+// 'lighting.bake.ambient.hemisphere': this.setMainLightingIntencity.bind(this),
+// 'lighting.bake.ambient.ambientBakeNumSamples': this.setMainLightingIntencity.bind(this),
+// 'lighting.bake.ambient.ambientBakeOcclusionContrast': this.setMainLightingIntencity.bind(this),
+// 'lighting.bake.ambient.ambientBakeOcclusionBrightness': this.setMainLightingIntencity.bind(this),
+
+// 'lighting.bake.directional.bake': this.setMainLightingIntencity.bind(this),
+// 'lighting.bake.directional.bakeNumSamples': this.setMainLightingIntencity.bind(this),
+// 'lighting.bake.directional.bakeArea': this.setMainLightingIntencity.bind(this),
 class SSAOPanel extends React.Component <{ scripts: ObserverData['scripts'], setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ scripts: ObserverData['scripts']; setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.scripts) !== JSON.stringify(this.props.scripts);

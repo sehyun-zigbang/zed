@@ -63,6 +63,29 @@ const observerData: ObserverData = {
             rotation_y: -150,
             rotation_z: 0,
         },
+        bake:
+        {
+            settings: {
+                lightmapFilterEnabled: true,
+                lightmapFilterRange: 10,
+                lightmapFilterSmoothness: 0.2
+            },
+            ambient: {
+                ambientBake: true,
+                hemisphere: true,
+                ambientBakeNumSamples: 20,
+                ambientBakeOcclusionContrast: -0.6,
+                ambientBakeOcclusionBrightness: -0.5
+            },
+            directional: {
+                bake: true,
+                bakeNumSamples: 15,
+                bakeArea: 10
+            },
+            stats: {
+                duration: ''
+            }
+        },
         tonemapping: 'ACES'
     },
     scene: {

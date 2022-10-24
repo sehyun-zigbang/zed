@@ -284,6 +284,8 @@ class Viewer {
     //#region Light
     light: pc.Entity;
     sublight: pc.Entity;
+    needBake:boolean;
+    bakeType:number;
     init_light()
     {
         const app = this.app;
@@ -295,26 +297,20 @@ class Viewer {
         var rotation = new pc.Vec3(45, 30, 0);
         light.addComponent("light", {
             type: "directional",
+            affectDynamic: true,
+            affectLightmapped: true,
             color: lightColor,
             castShadows: true,
             intensity: intensity,
             shadowBias: 0.2,
             shadowDistance: 5,
             normalOffsetBias: 0.05,
-            shadowResolution: 2048
+            shadowResolution: 2048,
+            shadowType: pc.SHADOW_PCF3,
         });
         light.setLocalEulerAngles(rotation);
         app.root.addChild(light);
 
-        const sublight = this.sublight = new pc.Entity();
-        sublight.addComponent("light", {
-            type: "directional",
-            color: lightColor,
-            castShadows: false,
-            intensity: intensity
-        });
-        sublight.setLocalEulerAngles(rotation);
-        app.root.addChild(sublight);
         // const sublight = this.sublight = new pc.Entity();
         // sublight.addComponent("light", {
         //     type: "directional",
@@ -324,6 +320,17 @@ class Viewer {
         // });
         // sublight.setLocalEulerAngles(rotation);
         // app.root.addChild(sublight);
+
+         // if skydome cubemap is disabled using HUD, a constant ambient color is used instead
+         app.scene.ambientLight = new pc.Color(0.1, 0.3, 0.4);
+
+        // lightmap baking properties
+        this.bakeType = pc.BAKE_COLOR;
+        app.scene.lightmapMode = this.bakeType;
+        app.scene.lightmapMaxResolution = 1024;
+
+        // multiplier for lightmap resolution
+        app.scene.lightmapSizeMultiplier = 512;
 
         const controlEvents:any = {
             // main light
@@ -346,6 +353,20 @@ class Viewer {
             // 'lighting.subLight.rotation_x': this.setSubLightingRotation_x.bind(this),
             // 'lighting.subLight.rotation_y': this.setSubLightingRotation_y.bind(this),
             // 'lighting.subLight.rotation_z': this.setSubLightingRotation_z.bind(this)
+
+            'lighting.bake.settings.lightmapFilterEnabled': this.setLightmapFilterEnabled.bind(this),
+            'lighting.bake.settings.lightmapFilterRange': this.setLightmapFilterRange.bind(this),
+            'lighting.bake.settings.lightmapFilterSmoothness': this.setLightmapFilterSmoothness.bind(this),
+
+            'lighting.bake.directional.bake': this.setDirectionalBake.bind(this),
+            'lighting.bake.directional.bakeNumSamples': this.setDirectionalBakeNumSamples.bind(this),
+            'lighting.bake.directional.bakeArea': this.setDirectionalBakeArea.bind(this),
+
+            'lighting.bake.ambient.ambientBake': this.setAmbientBake.bind(this),
+            'lighting.bake.ambient.hemisphere': this.setAmbientHemisphere.bind(this),
+            'lighting.bake.ambient.ambientBakeNumSamples': this.setAmbientBakeNumSamples.bind(this),
+            'lighting.bake.ambient.ambientBakeOcclusionContrast': this.setAmbientBakeOcclusionContrast.bind(this),
+            'lighting.bake.ambient.ambientBakeOcclusionBrightness': this.setAmbientBakeOcclusionBrightness.bind(this),
         };
 
         // register control events
@@ -699,6 +720,10 @@ class Viewer {
 
     //#region Life Cycle
     update(deltaTime: number) {
+    
+        if(this.needBake)
+            this.bake();
+
         // update the orbit camera
         this.orbitCamera.update(deltaTime);
 
@@ -1029,9 +1054,13 @@ class Viewer {
             const components = entity.findComponents("render");
             for (let i = 0; i < components.length; i++) {
                 const render = components[i] as pc.RenderComponent;
+                render.castShadows = true;
+                render.castShadowsLightmap = true;
+                render.lightmapped = true;
                 if (render.meshInstances) {
                     for (let m = 0; m < render.meshInstances.length; m++) {
                         const meshInstance = render.meshInstances[m];
+                        
                         meshInstances.push(meshInstance);
                     }
                 }
@@ -1335,6 +1364,62 @@ class Viewer {
         this.renderNextFrame();
     }
 
+    bake()
+    {
+        this.needBake = false;
+        this.app.lightmapper.bake(null, this.bakeType);
+
+        // update stats with the bake duration
+        this.observer.set('lighting.bake.stats.duration', this.app.lightmapper.stats.totalRenderTime.toFixed(1) + 'ms');
+
+        this.renderNextFrame();
+    }
+    setLightmapFilterEnabled(value: boolean) {
+        this.app.scene.lightmapFilterEnabled = value;
+        this.needBake = true;
+    }
+    setLightmapFilterRange(value: number) {
+        this.app.scene.lightmapFilterRange = value;
+        this.needBake = true;
+    }
+    setLightmapFilterSmoothness(value: number) {
+        this.app.scene.lightmapFilterSmoothness = value;
+        this.needBake = true;
+    }
+    setDirectionalBake(value: boolean) {
+        this.light.light.bake = value;
+        this.light.light.bakeDir = value;
+        this.needBake = true;
+    }
+    setDirectionalBakeNumSamples(value: number) {
+        this.light.light.bakeNumSamples = value;
+        this.needBake = true;
+    }
+    setDirectionalBakeArea(value: number) {
+        this.light.light.bakeArea = value;
+        this.needBake = true;
+    }
+    setAmbientBake(value: boolean) {
+        this.app.scene.ambientBake = value;
+        this.needBake = true;
+    }
+    setAmbientHemisphere(value: boolean) {
+        this.app.scene.ambientBakeSpherePart = value ? 0.4 : 1;
+        this.needBake = true;
+    }
+    setAmbientBakeNumSamples(value: number) {
+        this.app.scene.ambientBakeNumSamples = value;
+        this.needBake = true;
+    }
+    setAmbientBakeOcclusionContrast(value: number) {
+        this.app.scene.ambientBakeOcclusionContrast = value;
+        this.needBake = true;
+    }
+    setAmbientBakeOcclusionBrightness(value: number) {
+        this.app.scene.ambientBakeOcclusionBrightness = value;
+        this.needBake = true;
+    }
+   
     //#endregion
 
     //#region Util

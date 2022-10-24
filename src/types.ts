@@ -59,6 +59,29 @@ export interface ObserverData {
             rotation_y : number,
             rotation_z : number
         },
+        bake:
+        {
+            settings: {
+                lightmapFilterEnabled: true,
+                lightmapFilterRange: number,
+                lightmapFilterSmoothness: number
+            },
+            ambient: {
+                ambientBake: boolean,
+                hemisphere: boolean,
+                ambientBakeNumSamples: number,
+                ambientBakeOcclusionContrast: number,
+                ambientBakeOcclusionBrightness:number
+            },
+            directional: {
+                bake: boolean,
+                bakeNumSamples: number,
+                bakeArea: number
+            },
+            stats: {
+                duration?: string
+            }
+        },
         tonemapping: string
     },
     scene: {
