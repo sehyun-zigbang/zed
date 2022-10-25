@@ -214,8 +214,6 @@ class DOFPanel extends React.Component <{ scripts: ObserverData['scripts'], setP
                 <Toggle label='Enable' value={props.scripts.bokeh.enabled} setProperty={(value: boolean) => props.setProperty('scripts.bokeh.enabled', value)} />
                 <Slider label='MaxBlur' precision={3} min={0} max={0.1} value={props.scripts.bokeh.maxBlur} setProperty={(value: number) => props.setProperty('scripts.bokeh.maxBlur', value)} />
                 <Slider label='Aperture' precision={3} min={0} max={0.2} value={props.scripts.bokeh.aperture} setProperty={(value: number) => props.setProperty('scripts.bokeh.aperture', value)} />
-                {/* <Slider label='Focus' precision={2} min={-10000} max={10000} value={props.scripts.bokeh.focus} setProperty={(value: number) => props.setProperty('scripts.bokeh.focus', value)} /> */}
-                {/* <Detail label='Focus' value={props.scripts.bokeh.focus} /> */}
             </Panel>
         );
     }

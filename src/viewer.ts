@@ -248,7 +248,12 @@ class Viewer {
             this.orbitCamera.azimElevDistance.snapto(aed);
         }
         this.sceneBounds = bbox;
-        this.observer.set('scene.bounds', bbox);
+        const v = new pc.Vec3(
+            Math.round((this.sceneBounds.halfExtents.x * 2) * 100)/100,
+            Math.round((this.sceneBounds.halfExtents.y * 2) * 100)/100,
+            Math.round((this.sceneBounds.halfExtents.z * 2) * 100)/100
+        );
+        this.observer.set('scene.bounds', v.toString());
         this.orbitCamera.setBounds(bbox);
         this.orbitCamera.focalPoint.snapto(bbox.center);
         camera.nearClip = distance / 100;
@@ -719,9 +724,14 @@ class Viewer {
     //-----------------------------------
 
     //#region Life Cycle
+    moved: boolean;
     update(deltaTime: number) {
         // update the orbit camera
         this.orbitCamera.update(deltaTime);
+
+        const showStats = this.observer.get('show.stats');
+        const showDepth = this.observer.get('show.depth');
+        const showGrid = this.observer.get('show.grid');
 
         const maxdiff = (a: pc.Mat4, b: pc.Mat4) => {
             let result = 0;
@@ -736,8 +746,9 @@ class Viewer {
         if (maxdiff(cameraWorldTransform, this.prevCameraMat) > 1e-04) {
             this.prevCameraMat.copy(cameraWorldTransform);
 
-            const current = this.app.graphicsDevice.maxPixelRatio;
-            this.app.graphicsDevice.maxPixelRatio = Math.max(1, current - 0.1);
+            //const current = this.app.graphicsDevice.maxPixelRatio;
+            this.app.graphicsDevice.maxPixelRatio = 1;
+            this.moved = true;
             this.renderNextFrame();
 
             if(this.observer.get('scripts.bokeh.enabled') && this.camera.script?.has('bokeh'))
@@ -752,27 +763,29 @@ class Viewer {
         {
             var maxRatio = window.devicePixelRatio;
             const current = this.app.graphicsDevice.maxPixelRatio;
-            if(current != maxRatio)
+            if(current != maxRatio && this.moved)
             {
                 this.app.graphicsDevice.maxPixelRatio = Math.min(maxRatio, current + 0.1);
                 this.renderNextFrame();
             }
-        }
-
-        if(this.observer.get('show.stats'))
-        {
-            this.renderNextFrame();
-        }
-
-        if(this.observer.get('show.depth'))
-        {
-            if (this.observer.get('scripts.bokeh.enabled') || this.observer.get('scripts.ssao.enabled')) {
-                // @ts-ignore engine-tsd
-                this.app.drawDepthTexture(0.7, -0.7, 0.5, 0.5);
+            else
+            {
+                this.moved = false;
+                if(showStats)
+                    this.renderNextFrame();
+                else
+                    this.app.graphicsDevice.maxPixelRatio = 1;
             }
         }
 
-        if (this.sceneBounds && this.observer.get('show.grid'))
+        if(showDepth)
+        {
+            // @ts-ignore engine-tsd
+            this.app.drawDepthTexture(0.7, -0.7, 0.5, 0.5);
+            this.renderNextFrame();
+        }
+
+        if (this.sceneBounds && showGrid)
         {
             const color1 = pc.Color.BLACK;
             const color2 = pc.Color.WHITE;
