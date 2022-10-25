@@ -1106,6 +1106,15 @@ class Viewer {
             const components = entity.findComponents("render");
             for (let i = 0; i < components.length; i++) {
                 const render = components[i] as pc.RenderComponent;
+                const name = components[i].entity.name.toLowerCase();
+                if(name.includes('roof') || name.includes('wall') || name.includes('window')|| name.includes('edge'))
+                {
+                    render.castShadows = true;
+                }
+                else
+                {
+                    render.castShadows = false;
+                }
                 if (render.meshInstances) {
                     for (let m = 0; m < render.meshInstances.length; m++) {
                         const meshInstance = render.meshInstances[m];

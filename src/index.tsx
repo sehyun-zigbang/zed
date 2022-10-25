@@ -44,12 +44,12 @@ const observerData: ObserverData = {
             rotation: 0
         },
         mainLight: {
-            intencity: 0.6,
+            intencity: 1,
             color_r: 255,
             color_g: 255,
             color_b: 255,
-            rotation_x: 45,
-            rotation_y: 30,
+            rotation_x: 50,
+            rotation_y: 15,
             rotation_z: 0,
             shadow: true,
             shadowResolution: 2048,
