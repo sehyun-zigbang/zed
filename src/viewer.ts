@@ -1087,12 +1087,20 @@ class Viewer {
 
     //#region calcBoundingBox
     // collects all mesh instances from entity hierarchy
+    //batchGroup : pc.BatchGroup;
     private collectMeshInstances(entity: pc.Entity) {
         const meshInstances: Array<pc.MeshInstance> = [];
+        //this.batchGroup = this.app.batcher.addGroup("Meshes", false, 10000);
         if (entity) {
             const components = entity.findComponents("render");
             for (let i = 0; i < components.length; i++) {
                 const render = components[i] as pc.RenderComponent;
+                // const name = components[i].entity.name.toLowerCase();
+                // if(name.includes('floor') || name.includes('door') || name.includes('문')|| name.includes('cabinet'))
+                // {
+                //     render.batchGroupId = this.batchGroup.id;
+                // }
+
                 if (render.meshInstances) {
                     for (let m = 0; m < render.meshInstances.length; m++) {
                         const meshInstance = render.meshInstances[m];
