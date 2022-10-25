@@ -1467,10 +1467,13 @@ class Viewer {
         if (location.search) {
             const s =location.search.substring(1).split("=");
             const api = s[0];
-            const values = (s[1] && decodeURIComponent(s[1])).split('/');
+            if(api.toLowerCase() == 'load')
+            {
+                const values = (s[1] && decodeURIComponent(s[1])).split('/');
 
-            if(values.length == 3)
-                this.LoadModel(values[0], values[1], values[2]);
+                if(values.length == 3)
+                    this.LoadModel(values[0], values[1], values[2]);
+            }
         }
 
     }
