@@ -229,6 +229,7 @@ class ShowPanel extends React.Component <{ showData: ObserverData['show'], setPr
         const props = this.props;
         return (
             <Panel headerText='DEBUG' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={true} collapsed={true}>
+                    <Toggle label='Grid' value={props.showData.grid} setProperty={(value: boolean) => props.setProperty('show.grid', value)}/>
                     <Toggle label='Stats' value={props.showData.stats} setProperty={(value: boolean) => props.setProperty('show.stats', value)}/>
                     <Toggle label='Depth' value={props.showData.depth} setProperty={(value: boolean) => props.setProperty('show.depth', value)}/>
             </Panel>

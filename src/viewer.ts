@@ -156,7 +156,7 @@ class Viewer {
                 // and would only result in extra memory usage.
                 antialias: true,
                 depth: true,
-                //preserveDrawingBuffer: true
+                preserveDrawingBuffer: false
             }
         });
         app.autoRender = false;
@@ -247,6 +247,8 @@ class Viewer {
             aed.z = distance;
             this.orbitCamera.azimElevDistance.snapto(aed);
         }
+        this.sceneBounds = bbox;
+        this.observer.set('scene.bounds', bbox);
         this.orbitCamera.setBounds(bbox);
         this.orbitCamera.focalPoint.snapto(bbox.center);
         camera.nearClip = distance / 100;
@@ -683,6 +685,8 @@ class Viewer {
 
         const controlEvents:any = {
             'show.stats': this.setStats.bind(this),
+            'show.grid': this.setGrid.bind(this),
+            'show.depth': this.setDepth.bind(this),
         };
 
         // register control events
@@ -719,14 +723,6 @@ class Viewer {
         // update the orbit camera
         this.orbitCamera.update(deltaTime);
 
-        if(this.camera.script?.has('bokeh'))
-        {
-            var fPoint = this.orbitCamera.focalPoint.snaptoPoint.clone();
-            var cPoint = this.orbitCamera.cameraNode.getPosition();
-            var focus = -fPoint.sub(cPoint).length();
-            this.setBokehFocus(focus);
-        }
-
         const maxdiff = (a: pc.Mat4, b: pc.Mat4) => {
             let result = 0;
             for (let i = 0; i < 16; ++i) {
@@ -739,14 +735,65 @@ class Viewer {
         const cameraWorldTransform = this.camera.getWorldTransform();
         if (maxdiff(cameraWorldTransform, this.prevCameraMat) > 1e-04) {
             this.prevCameraMat.copy(cameraWorldTransform);
+
+            const current = this.app.graphicsDevice.maxPixelRatio;
+            this.app.graphicsDevice.maxPixelRatio = Math.max(1, current - 0.1);
             this.renderNextFrame();
 
-            if(this.observer.get('show.depth'))
+            if(this.observer.get('scripts.bokeh.enabled') && this.camera.script?.has('bokeh'))
             {
-                if (this.observer.get('scripts.bokeh.enabled') || this.observer.get('scripts.ssao.enabled')) {
-                    // @ts-ignore engine-tsd
-                    this.app.drawDepthTexture(0.7, -0.7, 0.5, 0.5);
-                }
+                var fPoint = this.orbitCamera.focalPoint.snaptoPoint.clone();
+                var cPoint = this.orbitCamera.cameraNode.getPosition();
+                var focus = -fPoint.sub(cPoint).length();
+                this.setBokehFocus(focus);
+            }
+        }
+        else
+        {
+            var maxRatio = window.devicePixelRatio;
+            const current = this.app.graphicsDevice.maxPixelRatio;
+            if(current != maxRatio)
+            {
+                this.app.graphicsDevice.maxPixelRatio = Math.min(maxRatio, current + 0.1);
+                this.renderNextFrame();
+            }
+        }
+
+        if(this.observer.get('show.stats'))
+        {
+            this.renderNextFrame();
+        }
+
+        if(this.observer.get('show.depth'))
+        {
+            if (this.observer.get('scripts.bokeh.enabled') || this.observer.get('scripts.ssao.enabled')) {
+                // @ts-ignore engine-tsd
+                this.app.drawDepthTexture(0.7, -0.7, 0.5, 0.5);
+            }
+        }
+
+        if (this.sceneBounds && this.observer.get('show.grid'))
+        {
+            const color1 = pc.Color.BLACK;
+            const color2 = pc.Color.WHITE;
+            const spacing = 100;// Math.pow(10, Math.floor(Math.log10(this.sceneBounds.halfExtents.length())));
+
+            const v0 = new pc.Vec3(0, -0.2, 0);
+            const v1 = new pc.Vec3(0, -0.2, 0);
+
+            const numGrids = 10;
+            const a = numGrids * spacing;
+            for (let x = -numGrids; x < numGrids + 1; ++x) {
+                const b = x * spacing;
+
+                v0.set(-a, -0.2, b);
+                v1.set(a, -0.2, b);
+
+                this.app.drawLine(v0, v1, b === 0 ? color1 : color2);
+
+                v0.set(b, -0.2, -a);
+                v1.set(b, -0.2, a);
+                this.app.drawLine(v0, v1, b === 0 ? color1 : color2);
             }
         }
     }
@@ -1090,7 +1137,12 @@ class Viewer {
         this.miniStats.enabled = show;
         this.renderNextFrame();
     }
-   
+    setGrid(show: boolean) {
+        this.renderNextFrame();
+    }
+    setDepth(show: boolean) {
+        this.renderNextFrame();
+    }
     setFov(fov: number) {
         this.camera.camera.fov = fov;
         this.renderNextFrame();
@@ -1242,9 +1294,9 @@ class Viewer {
         this.camera.script.get('bokeh').fire('state', false);
         this.camera.script.get('vignette').fire('state', false);
 
+        if(FXAA != false) this.camera.script.get('fxaa').fire('state', FXAA);
         if(this.observer.get("show.postprocess"))
         {
-            if(FXAA != false) this.camera.script.get('fxaa').fire('state', FXAA);
             if(SSAO != false) this.camera.script.get('ssao').fire('state', SSAO);
             if(Bloom != false) this.camera.script.get('bloom').fire('state', Bloom);
             if(HS != false) this.camera.script.get('huesaturation').fire('state', HS);
@@ -1256,7 +1308,7 @@ class Viewer {
     }
 
     setPostProcessEnabled(value:boolean) {
-        this.camera.script.get('fxaa').fire('state', value ? this.observer.get("scripts.fxaa.enabled") : false);
+        //this.camera.script.get('fxaa').fire('state', value ? this.observer.get("scripts.fxaa.enabled") : false);
         this.camera.script.get('ssao').fire('state', value ? this.observer.get("scripts.ssao.enabled") : false);
         this.camera.script.get('bloom').fire('state', value ? this.observer.get("scripts.bloom.enabled") : false);
         this.camera.script.get('brightnesscontrast').fire('state', value ? this.observer.get("scripts.brightnesscontrast.enabled") : false);
