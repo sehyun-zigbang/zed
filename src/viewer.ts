@@ -51,7 +51,6 @@ class Viewer {
         assetListLoader.load(() => {
 
             const camera = this.camera;
-            observer.set('show.postprocess',  observer.get('show.postprocess'));
             
             camera.addComponent("script");
             Object.keys(observer.get('scripts')).forEach((key) => {
@@ -61,36 +60,26 @@ class Viewer {
             });
 
             const controlEvents:any = {
-                'show.postprocess': this.setPostProcessEnabled.bind(this),
-                // fxaa
-                'scripts.fxaa.enabled': this.setFxaaEnabled.bind(this),
-
                 // bloom
-                'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
                 'scripts.bloom.bloomIntensity': this.setBloomIntensity.bind(this),
                 'scripts.bloom.bloomThreshold': this.setBloomThreshold.bind(this),
                 'scripts.bloom.blurAmount': this.setBlurAmount.bind(this),
     
-                // // color adjust
-                'scripts.brightnesscontrast.enabled': this.setBrightnessContrastEnabled.bind(this),
+                // color adjust
                 'scripts.brightnesscontrast.brightness': this.setBrightness.bind(this),
                 'scripts.brightnesscontrast.contrast': this.setContrast.bind(this),
-                'scripts.huesaturation.enabled': this.setHueSaturationEnabled.bind(this),
                 'scripts.huesaturation.hue': this.setHue.bind(this),
                 'scripts.huesaturation.saturation': this.setSaturation.bind(this),
                 
                 // dof
-                'scripts.bokeh.enabled': this.setBokehEnabled.bind(this),
                 'scripts.bokeh.maxBlur': this.setBokehMaxBlur.bind(this),
                 'scripts.bokeh.aperture': this.setBokehAperture.bind(this),
     
-                // // vignette
-                'scripts.vignette.enabled': this.setVignetteEnabled.bind(this),
+                // vignette
                 'scripts.vignette.offset': this.setVignetteOffset.bind(this),
                 'scripts.vignette.darkness': this.setVignetteDarkness.bind(this),
 
-                //  // ssao
-                'scripts.ssao.enabled': this.setSSAOEnabled.bind(this),
+                // ssao
                 'scripts.ssao.radius': this.setSSAORadius.bind(this),
                 'scripts.ssao.samples': this.setSSAOSamples.bind(this),
                 'scripts.ssao.brightness': this.setSSAOBrightness.bind(this),
@@ -102,6 +91,42 @@ class Viewer {
                 observer.on(`${e}:set`, controlEvents[e]);
                 observer.set(e, observer.get(e), false, false, true);
             });
+
+            observer.set('scripts.fxaa.enabled', observer.get('scripts.fxaa.enabled'), false, false, true);
+            observer.set('scripts.ssao.enabled', observer.get('scripts.ssao.enabled'), false, false, true);
+            observer.set('scripts.bloom.enabled', observer.get('scripts.bloom.enabled'), false, false, true);
+            observer.set('scripts.brightnesscontrast.enabled', observer.get('scripts.brightnesscontrast.enabled'), false, false, true);
+            observer.set('scripts.huesaturation.enabled', observer.get('scripts.huesaturation.enabled'), false, false, true);
+            observer.set('scripts.bokeh.enabled', observer.get('scripts.bokeh.enabled'), false, false, true);
+            observer.set('scripts.vignette.enabled', observer.get('scripts.vignette.enabled'), false, false, true);
+
+            const stateEvents:any = {
+                'show.postprocess': this.setPostProcessEnabled.bind(this),
+                // fxaa
+                'scripts.fxaa.enabled': this.setFxaaEnabled.bind(this),
+
+                // bloom
+                'scripts.bloom.enabled': this.setBloomEnabled.bind(this),
+    
+                // // color adjust
+                'scripts.brightnesscontrast.enabled': this.setBrightnessContrastEnabled.bind(this),
+                'scripts.huesaturation.enabled': this.setHueSaturationEnabled.bind(this),
+                
+                // dof
+                'scripts.bokeh.enabled': this.setBokehEnabled.bind(this),
+    
+                // // vignette
+                'scripts.vignette.enabled': this.setVignetteEnabled.bind(this),
+
+                //  // ssao
+                'scripts.ssao.enabled': this.setSSAOEnabled.bind(this)
+            };
+           
+            // register control events
+            Object.keys(stateEvents).forEach((e) => {
+                observer.on(`${e}:set`, stateEvents[e]);
+            });
+            observer.set('show.postprocess', observer.get('show.postprocess'), false, false, true);
 
             observer.on('canvasResized', () => {
                 this.resizeCanvas();
@@ -681,7 +706,7 @@ class Viewer {
         const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
         const canvasSize = this.getCanvasSize();
 
-        device.maxPixelRatio = 1;//window.devicePixelRatio;
+        device.maxPixelRatio = window.devicePixelRatio;
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
         this.renderNextFrame();
     }
@@ -1207,30 +1232,62 @@ class Viewer {
         this.app.scene.skyboxMip = mip - 1;
         this.renderNextFrame();
     }
-    setPostProcessEnabled(value: boolean) {
-        // if(this.observer.get("scripts.bloom.enabled") != value)
-        //     this.setBloomEnabled(value);
-        // if(this.observer.get("scripts.bokeh.enabled") != value)
-        //     this.setBokehEnabled(value);
-        // if(this.observer.get("scripts.ssao.enabled") != value)
-        //     this.setSSAOEnabled(value);
-        // if(this.observer.get("scripts.vignette.enabled") != value)
-        //     this.setVignetteEnabled(value);
-        // if(this.observer.get("scripts.huesaturation.enabled") != value)
-        //     this.setHueSaturationEnabled(value);
-        // if(this.observer.get("scripts.brightnesscontrast.enabled") != value)
-        //     this.setBrightnessContrastEnabled(value);
+    
+    setPostProcessInit(FXAA: boolean, SSAO: boolean, Bloom:boolean, HS:boolean, BC:boolean, DOF:boolean, Vignette:boolean) {
+        this.camera.script.get('fxaa').fire('state', false);
+        this.camera.script.get('ssao').fire('state', false);
+        this.camera.script.get('bloom').fire('state', false);
+        this.camera.script.get('brightnesscontrast').fire('state', false);
+        this.camera.script.get('huesaturation').fire('state', false);
+        this.camera.script.get('bokeh').fire('state', false);
+        this.camera.script.get('vignette').fire('state', false);
+
+        if(this.observer.get("show.postprocess"))
+        {
+            if(FXAA != false) this.camera.script.get('fxaa').fire('state', FXAA);
+            if(SSAO != false) this.camera.script.get('ssao').fire('state', SSAO);
+            if(Bloom != false) this.camera.script.get('bloom').fire('state', Bloom);
+            if(HS != false) this.camera.script.get('huesaturation').fire('state', HS);
+            if(BC != false) this.camera.script.get('brightnesscontrast').fire('state', BC);
+            if(DOF != false) this.camera.script.get('bokeh').fire('state', DOF);
+            if(Vignette != false) this.camera.script.get('vignette').fire('state', Vignette);
+        }
+        this.renderNextFrame();
+    }
+
+    setPostProcessEnabled(value:boolean) {
+        this.camera.script.get('fxaa').fire('state', value ? this.observer.get("scripts.fxaa.enabled") : false);
+        this.camera.script.get('ssao').fire('state', value ? this.observer.get("scripts.ssao.enabled") : false);
+        this.camera.script.get('bloom').fire('state', value ? this.observer.get("scripts.bloom.enabled") : false);
+        this.camera.script.get('brightnesscontrast').fire('state', value ? this.observer.get("scripts.brightnesscontrast.enabled") : false);
+        this.camera.script.get('huesaturation').fire('state', value ? this.observer.get("scripts.huesaturation.enabled") : false);
+        this.camera.script.get('bokeh').fire('state', value ? this.observer.get("scripts.bokeh.enabled") : false);
+        this.camera.script.get('vignette').fire('state', value ? this.observer.get("scripts.vignette.enabled") : false);
+
         this.renderNextFrame();
     }
 
     setFxaaEnabled(value: boolean) {
-        this.camera.script.get('fxaa').fire('state', value);
-        this.renderNextFrame();
+        this.setPostProcessInit(
+            value,
+            this.observer.get('scripts.ssao.enabled'),
+            this.observer.get('scripts.bloom.enabled'),
+            this.observer.get('scripts.huesaturation.enabled'),
+            this.observer.get('scripts.brightnesscontrast.enabled'),
+            this.observer.get('scripts.bokeh.enabled'),
+            this.observer.get('scripts.vignette.enabled'),
+        );
     }
     setBloomEnabled(value: boolean) {
-        // if(!this.observer.get("show.postprocess")) return;
-        this.camera.script.get('bloom').fire('state', value);
-        this.renderNextFrame();
+        this.setPostProcessInit(
+            this.observer.get('scripts.fxaa.enabled'),
+            this.observer.get('scripts.ssao.enabled'),
+            value,
+            this.observer.get('scripts.huesaturation.enabled'),
+            this.observer.get('scripts.brightnesscontrast.enabled'),
+            this.observer.get('scripts.bokeh.enabled'),
+            this.observer.get('scripts.vignette.enabled'),
+        );
     }
     setBloomIntensity(value: number) {
         this.camera.script.get('bloom').fire('attr', 'bloomIntensity', value);
@@ -1246,9 +1303,15 @@ class Viewer {
     }
 
     setBrightnessContrastEnabled(value: boolean) {
-        // if(!this.observer.get("show.postprocess")) return;
-        this.camera.script.get('brightnesscontrast').fire('state', value);
-        this.renderNextFrame();
+        this.setPostProcessInit(
+            this.observer.get('scripts.fxaa.enabled'),
+            this.observer.get('scripts.ssao.enabled'),
+            this.observer.get('scripts.bloom.enabled'),
+            this.observer.get('scripts.huesaturation.enabled'),
+            value,
+            this.observer.get('scripts.bokeh.enabled'),
+            this.observer.get('scripts.vignette.enabled'),
+        );
     }
     setBrightness(value: number) {
         this.camera.script.get('brightnesscontrast').fire('attr', 'brightness', value);
@@ -1260,9 +1323,15 @@ class Viewer {
     }
 
     setHueSaturationEnabled(value: boolean) {
-        // if(!this.observer.get("show.postprocess")) return;
-        this.camera.script.get('huesaturation').fire('state', value);
-        this.renderNextFrame();
+        this.setPostProcessInit(
+            this.observer.get('scripts.fxaa.enabled'),
+            this.observer.get('scripts.ssao.enabled'),
+            this.observer.get('scripts.bloom.enabled'),
+            value,
+            this.observer.get('scripts.brightnesscontrast.enabled'),
+            this.observer.get('scripts.bokeh.enabled'),
+            this.observer.get('scripts.vignette.enabled'),
+        );
     }
     setHue(value: number) {
         this.camera.script.get('huesaturation').fire('attr', 'hue', value);
@@ -1274,9 +1343,15 @@ class Viewer {
     }
 
     setVignetteEnabled(value: boolean) {
-        // if(!this.observer.get("show.postprocess")) return;
-        this.camera.script.get('vignette').fire('state', value);
-        this.renderNextFrame();
+        this.setPostProcessInit(
+            this.observer.get('scripts.fxaa.enabled'),
+            this.observer.get('scripts.ssao.enabled'),
+            this.observer.get('scripts.bloom.enabled'),
+            this.observer.get('scripts.huesaturation.enabled'),
+            this.observer.get('scripts.brightnesscontrast.enabled'),
+            this.observer.get('scripts.bokeh.enabled'),
+            value,
+        );
     }
     setVignetteOffset(value: number) {
         this.camera.script.get('vignette').fire('attr', 'offset', value);
@@ -1288,9 +1363,15 @@ class Viewer {
     }
 
     setBokehEnabled(value: boolean) {
-        // if(!this.observer.get("show.postprocess")) return;
-        this.camera.script.get('bokeh').fire('state', value);
-        this.renderNextFrame();
+        this.setPostProcessInit(
+            this.observer.get('scripts.fxaa.enabled'),
+            this.observer.get('scripts.ssao.enabled'),
+            this.observer.get('scripts.bloom.enabled'),
+            this.observer.get('scripts.huesaturation.enabled'),
+            this.observer.get('scripts.brightnesscontrast.enabled'),
+            value,
+            this.observer.get('scripts.vignette.enabled'),
+        );
     }
     setBokehMaxBlur(value: number) {
         this.camera.script.get('bokeh').fire('attr', 'maxBlur', value);
@@ -1306,9 +1387,15 @@ class Viewer {
     }
 
     setSSAOEnabled(value: boolean) {
-        // if(!this.observer.get("show.postprocess")) return;
-        this.camera.script.get('ssao').fire('state', value);
-        this.renderNextFrame();
+        this.setPostProcessInit(
+            this.observer.get('scripts.fxaa.enabled'),
+            value,
+            this.observer.get('scripts.bloom.enabled'),
+            this.observer.get('scripts.huesaturation.enabled'),
+            this.observer.get('scripts.brightnesscontrast.enabled'),
+            this.observer.get('scripts.bokeh.enabled'),
+            this.observer.get('scripts.vignette.enabled'),
+        );
     }
     setSSAORadius(value: number) {
         this.camera.script.get('ssao').fire('attr', 'radius', value);
@@ -1332,38 +1419,38 @@ class Viewer {
     //#region Util
 
     // extract query params. taken from https://stackoverflow.com/a/21152762
-    handleUrlParams() {
-        const urlParams: any = {};
-        if (location.search) {
-            location.search.substring(1).split("&").forEach((item) => {
-                const s = item.split("="),
-                    k = s[0],
-                    v = s[1] && decodeURIComponent(s[1]);
-                (urlParams[k] = urlParams[k] || []).push(v);
-            });
-        }
+    // handleUrlParams() {
+    //     const urlParams: any = {};
+    //     if (location.search) {
+    //         location.search.substring(1).split("&").forEach((item) => {
+    //             const s = item.split("="),
+    //                 k = s[0],
+    //                 v = s[1] && decodeURIComponent(s[1]);
+    //             (urlParams[k] = urlParams[k] || []).push(v);
+    //         });
+    //     }
 
-        // handle load url param
-        const loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
-        if (loadUrls.length > 0) {
-            this.loadFiles(
-                loadUrls.map((url: string) => {
-                    return { url, filename: url };
-                })
-            );
-        }
-        if (loadUrls.length === 1) {
-            this.observer.set('glbUrl', loadUrls[0]);
-        }
+    //     // handle load url param
+    //     const loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
+    //     if (loadUrls.length > 0) {
+    //         this.loadFiles(
+    //             loadUrls.map((url: string) => {
+    //                 return { url, filename: url };
+    //             })
+    //         );
+    //     }
+    //     if (loadUrls.length === 1) {
+    //         this.observer.set('glbUrl', loadUrls[0]);
+    //     }
 
-        // set camera position
-        if (urlParams.hasOwnProperty('cameraPosition')) {
-            const pos = urlParams.cameraPosition[0].split(',').map(Number);
-            if (pos.length === 3) {
-                this.cameraPosition = new pc.Vec3(pos);
-            }
-        }
-    }
+    //     // set camera position
+    //     if (urlParams.hasOwnProperty('cameraPosition')) {
+    //         const pos = urlParams.cameraPosition[0].split(',').map(Number);
+    //         if (pos.length === 3) {
+    //             this.cameraPosition = new pc.Vec3(pos);
+    //         }
+    //     }
+    // }
 
     //#endregion
 
@@ -1373,6 +1460,42 @@ class Viewer {
         //     this.multiframe.moved();
         // }
     }
+
+
+    handleUrlParams() {
+        const urlParams: any = {};
+        if (location.search) {
+            const s =location.search.substring(1).split("=");
+            const api = s[0];
+            const values = (s[1] && decodeURIComponent(s[1])).split('/');
+
+            if(values.length == 3)
+                this.LoadModel(values[0], values[1], values[2]);
+        }
+
+    }
+    LoadModel(danjiId:string, roomTypeId:string, level:string){
+        var asset_path = "https://raw.githubusercontent.com/sehyun-zigbang/zigbang-zed-viewer/feature/playcanvas-based/assets";
+        
+        var model_path = `${asset_path}/glTF/${danjiId}/${roomTypeId}`;
+        var model_name = `${danjiId}_${roomTypeId}_${level}`;
+        var name_glTF = `${model_name}.gltf`;
+        var name_bin = `${model_name}.bin`;
+        var url_glTF = `${model_path}/${name_glTF}`;
+        var url_bin = `${model_path}/${name_bin}`;
+        //this.observer.setProperty('scene.name', model_name);
+
+        const loadList: Array<File> = [];
+        loadList.push({
+            url : url_glTF,
+            filename : name_glTF
+        });
+        loadList.push({
+            url : url_bin,
+            filename : name_bin
+        });
+        this.loadFiles(loadList);
+    };
 }
 
 export default Viewer;
