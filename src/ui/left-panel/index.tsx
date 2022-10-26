@@ -263,7 +263,7 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
 
     componentDidUpdate(prevProps: Readonly<{ observerData: ObserverData; setProperty: SetProperty; }>): void {
         if (!this.isMobile && prevProps.observerData.scene.nodes === '[]' && this.props.observerData.scene.nodes !== '[]') {
-            openPanel();
+            //openPanel();
         }
     }
 

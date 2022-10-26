@@ -233,8 +233,10 @@ class Viewer {
 
         // calculate scene bounding box
         const radius = bbox.halfExtents.length();
-        const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
-
+       
+        //const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio  * pc.math.DEG_TO_RAD);
+        const distance = (radius * 1.1) / Math.sin(0.5 * camera.fov * pc.math.DEG_TO_RAD) / camera.aspectRatio;
+        
         if (this.cameraPosition) {
             const vec = bbox.center.clone().sub(this.cameraPosition);
             this.orbitCamera.vecToAzimElevDistance(vec, vec);
@@ -242,8 +244,8 @@ class Viewer {
             this.cameraPosition = null;
         } else {
             const aed = this.orbitCamera.azimElevDistance.target.clone();
-            aed.x = 45;
-            aed.y = -45;
+            aed.x = 0;
+            aed.y = -30;
             aed.z = distance;
             this.orbitCamera.azimElevDistance.snapto(aed);
         }
@@ -255,7 +257,7 @@ class Viewer {
         );
         this.observer.set('scene.bounds', v.toString());
         this.orbitCamera.setBounds(bbox);
-        this.orbitCamera.focalPoint.snapto(bbox.center);
+        this.orbitCamera.focalPoint.snapto(pc.Vec3.ZERO);
         camera.nearClip = distance / 100;
         camera.farClip = distance * 10;
 
@@ -263,7 +265,8 @@ class Viewer {
         light.light.shadowDistance = distance * 2;
 
         this.cameraFocusBBox = bbox;
-        this.renderNextFrame();
+        this.prevCameraMat.copy(this.camera.getWorldTransform());
+        this.app.on('update', this.update, this);
     }
 
     calcSceneBounds() {
@@ -612,7 +615,6 @@ class Viewer {
             }
         });
 
-        app.on('update', this.update, this);
         app.on('frameend', this.onFrameend, this);
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
@@ -740,7 +742,7 @@ class Viewer {
             }
             return result;
         };
-
+        
         // if the camera has moved since the last render
         const cameraWorldTransform = this.camera.getWorldTransform();
         if (maxdiff(cameraWorldTransform, this.prevCameraMat) > 1e-04) {
@@ -749,7 +751,7 @@ class Viewer {
             //const current = this.app.graphicsDevice.maxPixelRatio;
             this.app.graphicsDevice.maxPixelRatio = 1;
             this.moved = true;
-            this.renderNextFrame();
+            this.renderOnlyNextFrame();
 
             if(this.observer.get('scripts.bokeh.enabled') && this.camera.script?.has('bokeh'))
             {
@@ -764,17 +766,17 @@ class Viewer {
             var maxRatio = window.devicePixelRatio;
             const current = this.app.graphicsDevice.maxPixelRatio;
             if(current != maxRatio && this.moved)
-            {
+            {   
                 this.app.graphicsDevice.maxPixelRatio = Math.min(maxRatio, current + 0.1);
-                this.renderNextFrame();
+                this.renderOnlyNextFrame();
             }
             else
             {
                 this.moved = false;
                 if(showStats)
-                    this.renderNextFrame();
+                    this.renderOnlyNextFrame();
                 else
-                    this.app.graphicsDevice.maxPixelRatio = 1;
+                    this.app.graphicsDevice.maxPixelRatio = maxRatio;
             }
         }
 
@@ -782,7 +784,7 @@ class Viewer {
         {
             // @ts-ignore engine-tsd
             this.app.drawDepthTexture(0.7, -0.7, 0.5, 0.5);
-            this.renderNextFrame();
+            this.renderOnlyNextFrame();
         }
 
         if (this.sceneBounds && showGrid)
@@ -794,7 +796,7 @@ class Viewer {
             const v0 = new pc.Vec3(0, -0.2, 0);
             const v1 = new pc.Vec3(0, -0.2, 0);
 
-            const numGrids = 10;
+            const numGrids = 15;
             const a = numGrids * spacing;
             for (let x = -numGrids; x < numGrids + 1; ++x) {
                 const b = x * spacing;
@@ -821,7 +823,6 @@ class Viewer {
             this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp} ms`);
             this.loadTimestamp = null;
             this.observer.set('spinner', false);
-            this.renderNextFrame();
         }
     }
     //#endregion
@@ -1153,7 +1154,6 @@ class Viewer {
     //#endregion
 
     //#region Set Property
-   
    
     setStats(show: boolean) {
         this.miniStats.enabled = show;
@@ -1529,12 +1529,12 @@ class Viewer {
     //#endregion
 
     renderNextFrame() {
+        this.app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
         this.app.renderNextFrame = true;
-        // if (this.multiframe) {
-        //     this.multiframe.moved();
-        // }
     }
-
+    renderOnlyNextFrame() {
+        this.app.renderNextFrame = true;
+    }
 
     handleUrlParams() {
         const urlParams: any = {};
