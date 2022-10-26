@@ -256,10 +256,10 @@ class Viewer {
             Math.round((this.sceneBounds.halfExtents.z * 2) * 100)/100
         );
         this.observer.set('scene.bounds', v.toString());
-        this.orbitCamera.setBounds(bbox);
+        this.orbitCamera.init(bbox, distance * 1.3);
         this.orbitCamera.focalPoint.snapto(pc.Vec3.ZERO);
         camera.nearClip = distance / 100;
-        camera.farClip = distance * 10;
+        camera.farClip = distance * 2;
 
         const light = this.light;
         light.light.shadowDistance = distance * 2;
@@ -796,7 +796,7 @@ class Viewer {
             const v0 = new pc.Vec3(0, -0.2, 0);
             const v1 = new pc.Vec3(0, -0.2, 0);
 
-            const numGrids = 15;
+            const numGrids = 10;
             const a = numGrids * spacing;
             for (let x = -numGrids; x < numGrids + 1; ++x) {
                 const b = x * spacing;

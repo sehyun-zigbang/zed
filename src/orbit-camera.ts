@@ -9,6 +9,7 @@ class SmoothedValue {
     type : number;
     bounds : pc.BoundingBox;
     snaptoPoint : pc.Vec3;
+    maxDistance:number;
 
     constructor(value: any, transitionTime = 0.25, type = 1) {
         this.value = value.clone();
@@ -49,6 +50,7 @@ class SmoothedValue {
                 //this.target = pc.Vec3.ZERO;
 
                 this.target.y = Math.min(0, this.target.y);
+                this.target.z = Math.max(Math.min(this.target.z, this.maxDistance), 150);
             }
         }
 
@@ -65,9 +67,10 @@ class SmoothedValue {
         }
     }
 
-    setBounds(bounds : pc.BoundingBox)
+    setBounds(bounds : pc.BoundingBox, distance:number)
     {
         this.bounds = bounds;
+        this.maxDistance = distance;
     }
 }
 
@@ -81,7 +84,8 @@ class OrbitCamera {
     focalPoint: SmoothedValue;
     azimElevDistance: SmoothedValue;
     sceneBounds : pc.BoundingBox;
-
+    maxDistance: number;
+    
     constructor(cameraNode: pc.Entity, transitionTime: number) {
         this.cameraNode = cameraNode;
         this.focalPoint = new SmoothedValue(new pc.Vec3(0, 0, 0), transitionTime, 1);
@@ -123,11 +127,12 @@ class OrbitCamera {
         this.cameraNode.setLocalEulerAngles(aed.y, aed.x, 0);
     }
 
-    setBounds(bounds : pc.BoundingBox)
+    init(bounds : pc.BoundingBox, distance:number)
     {
         this.sceneBounds = bounds;
-        this.focalPoint.setBounds(bounds);
-        this.azimElevDistance.setBounds(bounds);
+        this.maxDistance = distance;
+        this.focalPoint.setBounds(bounds, distance);
+        this.azimElevDistance.setBounds(bounds, distance);
     }
 }
 
