@@ -765,9 +765,10 @@ class Viewer {
         {
             var maxRatio = window.devicePixelRatio;
             const current = this.app.graphicsDevice.maxPixelRatio;
+            const per = (maxRatio - 1) / 5;
             if(current != maxRatio && this.moved)
             {   
-                this.app.graphicsDevice.maxPixelRatio = Math.min(maxRatio, current + 0.1);
+                this.app.graphicsDevice.maxPixelRatio = Math.min(maxRatio, current + per);
                 this.renderOnlyNextFrame();
             }
             else
