@@ -11,7 +11,7 @@ class SmoothedValue {
     snaptoPoint : pc.Vec3;
     maxDistance:number;
 
-    constructor(value: any, transitionTime = 0.25, type = 1) {
+    constructor(value: any, transitionTime: number, type: number) {
         this.value = value.clone();
         this.start = value.clone();
         this.target = value.clone();
@@ -44,8 +44,9 @@ class SmoothedValue {
                 this.target.y = this.snaptoPoint.y;
                 var z = this.bounds.halfExtents.z + offset;
                 this.target.z = Math.max(Math.min(z, this.target.z), -z);
+                
             }
-            else(this.type == 2)
+            else if(this.type == 2)
             {
                 //this.target = pc.Vec3.ZERO;
 
