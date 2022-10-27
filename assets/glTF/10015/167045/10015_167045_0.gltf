@@ -63,7 +63,8 @@
                 40,
                 41,
                 42,
-                43
+                43,
+                44
             ]
         },
         {
@@ -76,179 +77,183 @@
     "nodes" : [
         {
             "mesh" : 0,
-            "name" : "Bath_ad451ac0-5624-11ed-9d9c-acde48001122"
+            "name" : "Bath_1ddbd83c-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 1,
-            "name" : "Bed Poliform Java N240218_ad4939e8-5624-11ed-9d9c-acde48001122"
+            "name" : "Bed Poliform Java N240218_1de16c70-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 2,
-            "name" : "Bed childrens N120518_ad4c9a98-5624-11ed-9d9c-acde48001122"
+            "name" : "Bed childrens N120518_1de4c15e-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 3,
-            "name" : "Chest_ad4e12ce-5624-11ed-9d9c-acde48001122"
+            "name" : "Chest_1de643d0-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 4,
-            "name" : "TV stand_ad4faf12-5624-11ed-9d9c-acde48001122"
+            "name" : "TV stand_1de7eb0e-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 5,
-            "name" : "Sofa_ad526f18-5624-11ed-9d9c-acde48001122"
+            "name" : "Sofa_1deac8d8-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 6,
-            "name" : "Toilets unit_ad541c00-5624-11ed-9d9c-acde48001122"
+            "name" : "Toilets unit_1dec89f2-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 7,
-            "name" : "Washbasin_ad55d3c4-5624-11ed-9d9c-acde48001122"
+            "name" : "Washbasin_1dee4864-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 8,
-            "name" : "Toilets unit_ad5781c4-5624-11ed-9d9c-acde48001122"
+            "name" : "Toilets unit_1df00910-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 9,
-            "name" : "Washbasin_ad5943a6-5624-11ed-9d9c-acde48001122"
+            "name" : "Washbasin_1df1d38a-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 10,
-            "name" : "Bed childrens N120518_ad5cef7e-5624-11ed-9d9c-acde48001122"
+            "name" : "Bed childrens N120518_1df594d4-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 11,
-            "name" : "Red cabinet_ad5ec74a-5624-11ed-9d9c-acde48001122"
+            "name" : "Red cabinet_1df7add2-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 12,
-            "name" : "Red cabinet with basin_ad60dfbc-5624-11ed-9d9c-acde48001122"
+            "name" : "Red cabinet with basin_1df9d544-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 13,
-            "name" : "Red cabinet_ad62df2e-5624-11ed-9d9c-acde48001122"
+            "name" : "Red cabinet_1dfbc46c-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 14,
-            "name" : "Red drawers_ad64bd76-5624-11ed-9d9c-acde48001122"
+            "name" : "Red drawers_1dfdb1a0-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 15,
-            "name" : "Red drawers_ad66b428-5624-11ed-9d9c-acde48001122"
+            "name" : "Red drawers_1dffab04-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 16,
-            "name" : "Triple French window_ad688302-5624-11ed-9d9c-acde48001122"
+            "name" : "Triple French window_1e018b54-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 17,
-            "name" : "Double French window_ad6a5204-5624-11ed-9d9c-acde48001122"
+            "name" : "Double French window_1e036a8c-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 18,
-            "name" : "\ud604\uad00\ubb38_ad6c4df2-5624-11ed-9d9c-acde48001122"
+            "name" : "\ud604\uad00\ubb38_1e055f68-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 19,
-            "name" : "\uc5f4\ub9b0 \ubb38_ad6e40d0-5624-11ed-9d9c-acde48001122"
+            "name" : "\uc5f4\ub9b0 \ubb38_1e074986-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 20,
-            "name" : "\uc5f4\ub9b0 \ubb38_ad703cf0-5624-11ed-9d9c-acde48001122"
+            "name" : "\uc5f4\ub9b0 \ubb38_1e094a56-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 21,
-            "name" : "\uc5f4\ub9b0 \ubb38_ad723b40-5624-11ed-9d9c-acde48001122"
+            "name" : "\uc5f4\ub9b0 \ubb38_1e0b3ea6-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 22,
-            "name" : "\uc5f4\ub9b0 \ubb38_ad744e26-5624-11ed-9d9c-acde48001122"
+            "name" : "\uc5f4\ub9b0 \ubb38_1e0d412e-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 23,
-            "name" : "\uc5f4\ub9b0 \ubb38_ad764406-5624-11ed-9d9c-acde48001122"
+            "name" : "\uc5f4\ub9b0 \ubb38_1e0f6094-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 24,
-            "name" : "Double French window_ad7874ec-5624-11ed-9d9c-acde48001122"
+            "name" : "Double French window_1e1174ba-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 25,
-            "name" : "Double French window_ad7a974a-5624-11ed-9d9c-acde48001122"
+            "name" : "Double French window_1e1390ba-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 26,
-            "name" : "Edge_Top_ad7c85a0-5624-11ed-9d9c-acde48001122"
+            "name" : "Edge_Top_1e158898-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 27,
-            "name" : "Edge_Bottom_ad7e89b8-5624-11ed-9d9c-acde48001122"
+            "name" : "Edge_Bottom_1e1778a6-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 28,
-            "name" : "Floor_Balcony_ad84d14c-5624-11ed-9d9c-acde48001122"
+            "name" : "Wall_1e1a3a0a-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 29,
-            "name" : "Floor_Balcony_Roof_ad86c8bc-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Balcony_1e1dc148-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 30,
-            "name" : "Floor_Bathroom_ad8a6954-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Balcony_Roof_1e1fce02-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 31,
-            "name" : "Floor_Bathroom_Roof_ad8c747e-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Bathroom_1e23645e-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 32,
-            "name" : "Floor_Bathroom_ad8e17a2-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Bathroom_Roof_1e26840e-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 33,
-            "name" : "Floor_Bathroom_Roof_ad8e20ee-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Bathroom_1e28fbd0-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 34,
-            "name" : "Floor_Gate_ad91d158-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Bathroom_Roof_1e290c60-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 35,
-            "name" : "Floor_Gate_Roof_ad93ecd6-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Gate_1e2db670-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 36,
-            "name" : "Floor_Livingroom_ad97b096-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Gate_Roof_1e30205e-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 37,
-            "name" : "Floor_Livingroom_Roof_ad99cc00-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Livingroom_1e344b34-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 38,
-            "name" : "Floor_Room_ad9dd7fa-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Livingroom_Roof_1e36a578-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 39,
-            "name" : "Floor_Room_Roof_ada00106-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Room_1e3b2a9e-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 40,
-            "name" : "Floor_Room_ada1d206-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Room_Roof_1e3d9b3a-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 41,
-            "name" : "Floor_Room_Roof_ada1dd3c-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Room_1e3f8710-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 42,
-            "name" : "Floor_Room_ada3a554-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Room_Roof_1e3f921e-5625-11ed-9997-acde48001122"
         },
         {
             "mesh" : 43,
-            "name" : "Floor_Room_Roof_ada3b058-5624-11ed-9d9c-acde48001122"
+            "name" : "Floor_Room_1e417bce-5625-11ed-9997-acde48001122"
+        },
+        {
+            "mesh" : 44,
+            "name" : "Floor_Room_Roof_1e418704-5625-11ed-9997-acde48001122"
         }
     ],
     "materials" : [
@@ -3339,6 +3344,30 @@
             }
         },
         {
+            "extensions" : {
+                "KHR_materials_specular" : {
+                    "specularColorTexture" : {
+                        "index" : 70
+                    }
+                },
+                "KHR_materials_ior" : {
+                    "ior" : 3
+                }
+            },
+            "name" : "Wall",
+            "normalTexture" : {
+                "index" : 71,
+                "scale" : 0.8999999761581421
+            },
+            "pbrMetallicRoughness" : {
+                "baseColorTexture" : {
+                    "index" : 72
+                },
+                "metallicFactor" : 0,
+                "roughnessFactor" : 0.5
+            }
+        },
+        {
             "doubleSided" : true,
             "extensions" : {
                 "KHR_materials_clearcoat" : {
@@ -3347,7 +3376,7 @@
                 },
                 "KHR_materials_specular" : {
                     "specularColorTexture" : {
-                        "index" : 70
+                        "index" : 73
                     },
                     "specularColorFactor" : [
                         2.016311168670654,
@@ -3358,16 +3387,16 @@
             },
             "name" : "Floor_Balcony",
             "normalTexture" : {
-                "index" : 71,
+                "index" : 74,
                 "scale" : 3
             },
             "pbrMetallicRoughness" : {
                 "baseColorTexture" : {
-                    "index" : 72
+                    "index" : 75
                 },
                 "metallicFactor" : 0.20000000298023224,
                 "metallicRoughnessTexture" : {
-                    "index" : 73
+                    "index" : 76
                 }
             }
         },
@@ -3406,7 +3435,7 @@
                 },
                 "KHR_materials_specular" : {
                     "specularColorTexture" : {
-                        "index" : 74
+                        "index" : 77
                     },
                     "specularColorFactor" : [
                         2.0000002384185787,
@@ -3417,11 +3446,11 @@
             },
             "name" : "Floor_Bathroom",
             "normalTexture" : {
-                "index" : 75
+                "index" : 78
             },
             "pbrMetallicRoughness" : {
                 "baseColorTexture" : {
-                    "index" : 76
+                    "index" : 79
                 },
                 "metallicFactor" : 0.3499999940395355,
                 "roughnessFactor" : 0.4000000059604645
@@ -3513,7 +3542,7 @@
                 },
                 "KHR_materials_specular" : {
                     "specularColorTexture" : {
-                        "index" : 77
+                        "index" : 80
                     },
                     "specularColorFactor" : [
                         2.130518198013305,
@@ -3524,12 +3553,12 @@
             },
             "name" : "Floor_Livingroom",
             "normalTexture" : {
-                "index" : 78,
+                "index" : 81,
                 "scale" : 2
             },
             "pbrMetallicRoughness" : {
                 "baseColorTexture" : {
-                    "index" : 79
+                    "index" : 82
                 },
                 "metallicFactor" : 0.3499999940395355,
                 "roughnessFactor" : 0.4000000059604645
@@ -3570,7 +3599,7 @@
                 },
                 "KHR_materials_specular" : {
                     "specularColorTexture" : {
-                        "index" : 80
+                        "index" : 83
                     },
                     "specularColorFactor" : [
                         2.130518198013305,
@@ -3581,12 +3610,12 @@
             },
             "name" : "Floor_Room",
             "normalTexture" : {
-                "index" : 81,
+                "index" : 84,
                 "scale" : 2
             },
             "pbrMetallicRoughness" : {
                 "baseColorTexture" : {
-                    "index" : 82
+                    "index" : 85
                 },
                 "metallicFactor" : 0.3499999940395355,
                 "roughnessFactor" : 0.4000000059604645
@@ -5644,7 +5673,7 @@
             ]
         },
         {
-            "name" : "Floor_Balcony",
+            "name" : "Wall",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5669,7 +5698,7 @@
             ]
         },
         {
-            "name" : "Floor_Balcony_Roof",
+            "name" : "Floor_Balcony",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5694,7 +5723,7 @@
             ]
         },
         {
-            "name" : "Floor_Bathroom",
+            "name" : "Floor_Balcony_Roof",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5719,7 +5748,7 @@
             ]
         },
         {
-            "name" : "Floor_Bathroom_Roof",
+            "name" : "Floor_Bathroom",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5744,7 +5773,7 @@
             ]
         },
         {
-            "name" : "Floor_Bathroom.001",
+            "name" : "Floor_Bathroom_Roof",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5763,13 +5792,13 @@
                         }
                     },
                     "indices" : 380,
-                    "material" : 88,
+                    "material" : 90,
                     "mode" : 4
                 }
             ]
         },
         {
-            "name" : "Floor_Bathroom_Roof.001",
+            "name" : "Floor_Bathroom.001",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5794,7 +5823,7 @@
             ]
         },
         {
-            "name" : "Floor_Gate",
+            "name" : "Floor_Bathroom_Roof.001",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5819,7 +5848,7 @@
             ]
         },
         {
-            "name" : "Floor_Gate_Roof",
+            "name" : "Floor_Gate",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5844,7 +5873,7 @@
             ]
         },
         {
-            "name" : "Floor_Livingroom",
+            "name" : "Floor_Gate_Roof",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5869,7 +5898,7 @@
             ]
         },
         {
-            "name" : "Floor_Livingroom_Roof",
+            "name" : "Floor_Livingroom",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5894,7 +5923,7 @@
             ]
         },
         {
-            "name" : "Floor_Room",
+            "name" : "Floor_Livingroom_Roof",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5919,7 +5948,7 @@
             ]
         },
         {
-            "name" : "Floor_Room_Roof",
+            "name" : "Floor_Room",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5944,7 +5973,7 @@
             ]
         },
         {
-            "name" : "Floor_Room.001",
+            "name" : "Floor_Room_Roof",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5963,13 +5992,13 @@
                         }
                     },
                     "indices" : 412,
-                    "material" : 94,
+                    "material" : 96,
                     "mode" : 4
                 }
             ]
         },
         {
-            "name" : "Floor_Room_Roof.001",
+            "name" : "Floor_Room.001",
             "primitives" : [
                 {
                     "attributes" : {
@@ -5994,7 +6023,7 @@
             ]
         },
         {
-            "name" : "Floor_Room.002",
+            "name" : "Floor_Room_Roof.001",
             "primitives" : [
                 {
                     "attributes" : {
@@ -6013,13 +6042,13 @@
                         }
                     },
                     "indices" : 420,
-                    "material" : 94,
+                    "material" : 96,
                     "mode" : 4
                 }
             ]
         },
         {
-            "name" : "Floor_Room_Roof.002",
+            "name" : "Floor_Room.002",
             "primitives" : [
                 {
                     "attributes" : {
@@ -6039,6 +6068,31 @@
                     },
                     "indices" : 424,
                     "material" : 95,
+                    "mode" : 4
+                }
+            ]
+        },
+        {
+            "name" : "Floor_Room_Roof.002",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "POSITION" : 425,
+                        "NORMAL" : 426,
+                        "TEXCOORD_0" : 427
+                    },
+                    "extensions" : {
+                        "KHR_draco_mesh_compression" : {
+                            "bufferView" : 111,
+                            "attributes" : {
+                                "POSITION" : 0,
+                                "NORMAL" : 1,
+                                "TEXCOORD_0" : 2
+                            }
+                        }
+                    },
+                    "indices" : 428,
+                    "material" : 96,
                     "mode" : 4
                 }
             ]
@@ -6367,15 +6421,27 @@
         },
         {
             "sampler" : 0,
-            "source" : 17
+            "source" : 20
         },
         {
             "sampler" : 0,
-            "source" : 18
+            "source" : 21
         },
         {
             "sampler" : 0,
-            "source" : 19
+            "source" : 22
+        },
+        {
+            "sampler" : 0,
+            "source" : 20
+        },
+        {
+            "sampler" : 0,
+            "source" : 21
+        },
+        {
+            "sampler" : 0,
+            "source" : 22
         }
     ],
     "images" : [
@@ -6436,6 +6502,21 @@
         },
         {
             "mimeType" : "image/jpeg",
+            "name" : "wall_paper_N",
+            "uri" : "../../../textures/wall_paper_N.jpg"
+        },
+        {
+            "mimeType" : "image/jpeg",
+            "name" : "wall_paper_D",
+            "uri" : "../../../textures/wall_paper_D.jpg"
+        },
+        {
+            "mimeType" : "image/jpeg",
+            "name" : "Image",
+            "uri" : "../../../textures/Image-3.jpg"
+        },
+        {
+            "mimeType" : "image/jpeg",
             "name" : "floor_balcony_N",
             "uri" : "../../../textures/floor_balcony_N.jpg"
         },
@@ -6452,7 +6533,7 @@
         {
             "mimeType" : "image/jpeg",
             "name" : "Image",
-            "uri" : "../../../textures/Image-3.jpg"
+            "uri" : "../../../textures/Image-4.jpg"
         },
         {
             "mimeType" : "image/jpeg",
@@ -6467,7 +6548,7 @@
         {
             "mimeType" : "image/jpeg",
             "name" : "Image",
-            "uri" : "../../../textures/Image-4.jpg"
+            "uri" : "../../../textures/Image-5.jpg"
         },
         {
             "mimeType" : "image/jpeg",
@@ -9239,6 +9320,36 @@
         },
         {
             "componentType" : 5126,
+            "count" : 1766,
+            "max" : [
+                530.9999389648438,
+                242.00001525878906,
+                427.99993896484375
+            ],
+            "min" : [
+                -531,
+                1.9999812841415405,
+                -428.0000305175781
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "componentType" : 5126,
+            "count" : 1766,
+            "type" : "VEC3"
+        },
+        {
+            "componentType" : 5126,
+            "count" : 1766,
+            "type" : "VEC2"
+        },
+        {
+            "componentType" : 5123,
+            "count" : 2298,
+            "type" : "SCALAR"
+        },
+        {
+            "componentType" : 5126,
             "count" : 4,
             "max" : [
                 -385,
@@ -10197,83 +10308,88 @@
         },
         {
             "buffer" : 0,
-            "byteLength" : 183,
+            "byteLength" : 4369,
             "byteOffset" : 889432
         },
         {
             "buffer" : 0,
+            "byteLength" : 183,
+            "byteOffset" : 893804
+        },
+        {
+            "buffer" : 0,
             "byteLength" : 287,
-            "byteOffset" : 889616
+            "byteOffset" : 893988
         },
         {
             "buffer" : 0,
             "byteLength" : 284,
-            "byteOffset" : 889904
+            "byteOffset" : 894276
         },
         {
             "buffer" : 0,
             "byteLength" : 523,
-            "byteOffset" : 890188
+            "byteOffset" : 894560
         },
         {
             "buffer" : 0,
             "byteLength" : 343,
-            "byteOffset" : 890712
+            "byteOffset" : 895084
         },
         {
             "buffer" : 0,
             "byteLength" : 575,
-            "byteOffset" : 891056
+            "byteOffset" : 895428
         },
         {
             "buffer" : 0,
             "byteLength" : 196,
-            "byteOffset" : 891632
+            "byteOffset" : 896004
         },
         {
             "buffer" : 0,
             "byteLength" : 293,
-            "byteOffset" : 891828
+            "byteOffset" : 896200
         },
         {
             "buffer" : 0,
             "byteLength" : 669,
-            "byteOffset" : 892124
+            "byteOffset" : 896496
         },
         {
             "buffer" : 0,
             "byteLength" : 971,
-            "byteOffset" : 892796
+            "byteOffset" : 897168
         },
         {
             "buffer" : 0,
             "byteLength" : 412,
-            "byteOffset" : 893768
+            "byteOffset" : 898140
         },
         {
             "buffer" : 0,
             "byteLength" : 624,
-            "byteOffset" : 894180
+            "byteOffset" : 898552
         },
         {
             "buffer" : 0,
             "byteLength" : 369,
-            "byteOffset" : 894804
+            "byteOffset" : 899176
         },
         {
             "buffer" : 0,
             "byteLength" : 616,
-            "byteOffset" : 895176
+            "byteOffset" : 899548
         },
         {
             "buffer" : 0,
             "byteLength" : 426,
-            "byteOffset" : 895792
+            "byteOffset" : 900164
         },
         {
             "buffer" : 0,
             "byteLength" : 645,
-            "byteOffset" : 896220
+            "byteOffset" : 900592
         }
     ],
     "samplers" : [
@@ -10284,7 +10400,7 @@
     ],
     "buffers" : [
         {
-            "byteLength" : 896868,
+            "byteLength" : 901240,
             "uri" : "10015_167045_0.bin"
         }
     ]
