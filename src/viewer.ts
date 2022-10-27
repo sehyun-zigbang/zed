@@ -1110,7 +1110,15 @@ class Viewer {
             for (let i = 0; i < components.length; i++) {
                 const render = components[i] as pc.RenderComponent;
                 const name = components[i].entity.name.toLowerCase();
-                if(name.includes('roof') || name.includes('wall') || name.includes('window')|| name.includes('edge'))
+                if(name.includes('wall'))
+                {
+                    if(name.includes('deleted'))
+                    {
+                        render.enabled = false;
+                    }
+                    render.castShadows = true;
+                }
+                else if(name.includes('roof') || name.includes('window')|| name.includes('edge'))
                 {
                     render.castShadows = true;
                 }
