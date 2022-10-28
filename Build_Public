@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd zigbang-zed-viewer
+PUBLIC_PATH=https://sehyun-zigbang.github.io/zigbang-zed-viewer-public npm run build
+npm run serve

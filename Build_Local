@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd zigbang-zed-viewer
+npm run build
+npm run serve
