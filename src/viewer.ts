@@ -1562,7 +1562,7 @@ class Viewer {
 
     }
     LoadModel(danjiId:string, roomTypeId:string, level:string){
-        var asset_path = "https://raw.githubusercontent.com/sehyun-zigbang/zigbang-zed-viewer/feature/playcanvas-based/assets";
+        var asset_path = "https://raw.githubusercontent.com/sehyun-zigbang/zigbang-zed-assets/master";
         
         var model_path = `${asset_path}/glTF/${danjiId}/${roomTypeId}`;
         var model_name = `${danjiId}_${roomTypeId}_${level}`;
